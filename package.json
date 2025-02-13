@@ -1,0 +1,20 @@
+{
+  "name": "voicevox_bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@discordjs/voice": "^0.18.0",
+    "@keyv/sqlite": "^4.0.1",
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.7",
+    "keyv": "^5.2.3",
+    "libsodium-wrappers": "^0.7.15",
+    "nodemon": "^3.1.9"
+  }
+}
