@@ -27,6 +27,7 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
   ],
 });
 
@@ -100,6 +101,8 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
       channelId: newState.channelId,
       guildId: newState.guild.id,
       adapterCreator: newState.guild.voiceAdapterCreator,
+      selfMute: false,
+      selfDeaf: false,
     });
   }
 });
@@ -107,25 +110,25 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
 client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot) return;
   const connection = getVoiceConnection(message.guild.id);
-  console.log(message.content);
   if (!connection) return;
   const isMuted = await db.get(
     `${message.guild.id}-channel-mute-${message.channel.id}`
   );
   if (isMuted === "on") return;
-  // const buffer = await textToSpeech(message.content);
-  // const audioStream = new Readable();
-  // audioStream.push(buffer);
-  // audioStream.push(null);
+  const buffer = await textToSpeech(message.content);
+  console.log(buffer);
+  const audioStream = new Readable();
+  audioStream.push(buffer);
+  audioStream.push(null);
 
-  // const resource = createAudioResource(audioStream, {
-  //   inputType: StreamType.Arbitrary,
-  // });
+  const resource = createAudioResource(audioStream, {
+    inputType: StreamType.Arbitrary,
+  });
 
-  // const player = createAudioPlayer();
-  // player.play(resource);
+  const player = createAudioPlayer();
+  player.play(resource);
 
-  // connection.subscribe(player);
+  connection.subscribe(player);
 });
 
 client.login(process.env.DISCORD_TOKEN);

@@ -24,6 +24,8 @@ module.exports = {
       channelId: channel.id,
       guildId: channel.guild.id,
       adapterCreator: channel.guild.voiceAdapterCreator,
+      selfMute: false,
+      selfDeaf: false,
     });
   },
 };
