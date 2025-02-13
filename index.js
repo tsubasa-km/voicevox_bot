@@ -5,17 +5,29 @@ const {
   GatewayIntentBits,
   MessageFlags,
 } = require("discord.js");
-const { joinVoiceChannel, getVoiceConnection } = require("@discordjs/voice");
+const {
+  joinVoiceChannel,
+  getVoiceConnection,
+  createAudioPlayer,
+  createAudioResource,
+  StreamType,
+} = require("@discordjs/voice");
 const path = require("node:path");
 const fs = require("node:fs");
 require("dotenv").config();
 
 const db = require("./db");
+const { textToSpeech } = require("./voicevox");
+const { Readable } = require("node:stream");
 
 require("./deploy-commands");
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildMessages,
+  ],
 });
 
 client.commands = new Collection();
@@ -90,6 +102,30 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
       adapterCreator: newState.guild.voiceAdapterCreator,
     });
   }
+});
+
+client.on(Events.MessageCreate, async (message) => {
+  if (message.author.bot) return;
+  const connection = getVoiceConnection(message.guild.id);
+  console.log(message.content);
+  if (!connection) return;
+  const isMuted = await db.get(
+    `${message.guild.id}-channel-mute-${message.channel.id}`
+  );
+  if (isMuted === "on") return;
+  // const buffer = await textToSpeech(message.content);
+  // const audioStream = new Readable();
+  // audioStream.push(buffer);
+  // audioStream.push(null);
+
+  // const resource = createAudioResource(audioStream, {
+  //   inputType: StreamType.Arbitrary,
+  // });
+
+  // const player = createAudioPlayer();
+  // player.play(resource);
+
+  // connection.subscribe(player);
 });
 
 client.login(process.env.DISCORD_TOKEN);
