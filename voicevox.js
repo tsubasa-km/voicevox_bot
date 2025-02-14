@@ -38,7 +38,7 @@ async function checkVoiceVox() {
   try {
     const response = await fetch(`${baseURL}/version`);
     const data = await response.json();
-    return data.version;
+    return data;
   } catch (error) {
     return null;
   }
