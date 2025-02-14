@@ -115,7 +115,11 @@ client.on(Events.MessageCreate, async (message) => {
     `${message.guild.id}-channel-mute-${message.channel.id}`
   );
   if (isMuted === "on") return;
-  const buffer = await textToSpeech(message.content);
+
+  const speaker =
+    (await db.get(`${message.guild.id}-speaker-${message.author.id}`)) ?? "3";
+
+  const buffer = await textToSpeech(message.content, parseInt(speaker));
   const audioStream = new Readable();
   audioStream.push(buffer);
   audioStream.push(null);
