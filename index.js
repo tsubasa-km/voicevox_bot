@@ -116,7 +116,6 @@ client.on(Events.MessageCreate, async (message) => {
   );
   if (isMuted === "on") return;
   const buffer = await textToSpeech(message.content);
-  console.log(buffer);
   const audioStream = new Readable();
   audioStream.push(buffer);
   audioStream.push(null);

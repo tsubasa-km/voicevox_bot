@@ -1,11 +1,14 @@
 async function textToSpeech(text, speaker = 3) {
-  const baseURL = "http://localhost:50021";
+  const baseURL = "http://127.0.0.1:50021";
   try {
     const queryResponse = await fetch(
-      `${baseURL}/audio_query?text=${encodeURIComponent(
-        text
-      )}&speaker=${speaker}`,
-      { method: "POST" }
+      `${baseURL}/audio_query?text=${text}&speaker=${speaker}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
     );
     const queryData = await queryResponse.json();
 
@@ -15,7 +18,8 @@ async function textToSpeech(text, speaker = 3) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Accept: "audio/wav",
+          accept: "audio/wav",
+          responseType: "stream",
         },
         body: JSON.stringify(queryData),
       }
