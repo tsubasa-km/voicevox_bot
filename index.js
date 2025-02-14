@@ -21,7 +21,9 @@ const db = require("./db");
 const { textToSpeech, checkVoiceVox } = require("./voicevox");
 
 (async () => {
-  if (await checkVoiceVox()) {
+  const isReady = await checkVoiceVox();
+  console.log(isReady);
+  if (isReady) {
     console.log("VoiceVox is ready.");
   } else {
     throw new Error("VoiceVox is not ready.");
