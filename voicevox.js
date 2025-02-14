@@ -1,5 +1,6 @@
+const baseURL = "http://127.0.0.1:50021";
+
 async function textToSpeech(text, speaker = 3) {
-  const baseURL = "http://127.0.0.1:50021";
   try {
     const queryResponse = await fetch(
       `${baseURL}/audio_query?text=${text}&speaker=${speaker}`,
@@ -30,6 +31,16 @@ async function textToSpeech(text, speaker = 3) {
     return Buffer.from(arrayBuffer);
   } catch (error) {
     console.error("エラーが発生しました:", error);
+  }
+}
+
+async function checkVoiceVox() {
+  try {
+    const response = await fetch(`${baseURL}/version`);
+    const data = await response.json();
+    return data.version;
+  } catch (error) {
+    return null;
   }
 }
 
@@ -89,4 +100,4 @@ const speakers = [
   { name: "ナースロボ＿タイプＴ 内緒話", value: "50" },
 ];
 
-module.exports = { textToSpeech, speakers };
+module.exports = { textToSpeech, checkVoiceVox, speakers };

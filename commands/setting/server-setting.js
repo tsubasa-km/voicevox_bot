@@ -5,7 +5,7 @@ const options = [{ name: "自動接続", value: "autoconnect", default: "off" }]
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("server-setting")
-    .setDescription("設定を変更します。")
+    .setDescription("サーバーの設定を変更します。")
     .addStringOption((option) =>
       option
         .setName("option")

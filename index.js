@@ -12,14 +12,21 @@ const {
   createAudioResource,
   StreamType,
 } = require("@discordjs/voice");
+const { Readable } = require("node:stream");
 const path = require("node:path");
 const fs = require("node:fs");
 require("dotenv").config();
 
 const db = require("./db");
-const { textToSpeech } = require("./voicevox");
-const { Readable } = require("node:stream");
+const { textToSpeech, checkVoiceVox } = require("./voicevox");
 
+(async () => {
+  if (await checkVoiceVox()) {
+    console.log("VoiceVox is ready.");
+  } else {
+    throw new Error("VoiceVox is not ready.");
+  }
+})();
 require("./deploy-commands");
 
 const client = new Client({

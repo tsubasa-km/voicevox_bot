@@ -12,17 +12,9 @@ module.exports = {
       .setColor(0x00ff00);
 
     commands.forEach((command) => {
-      let argDesc = "";
-      if (command.data.options) {
-        command.data.options.forEach((option) => {
-          argDesc += `\n• ${option.name}: ${option.description || "説明なし"}`;
-        });
-      }
       helpEmbed.addFields({
         name: `/${command.data.name}`,
-        value:
-          (command.data.description || "説明なし") +
-          (argDesc ? `\nargs:${argDesc}` : ""),
+        value: command.data.description || "説明なし",
       });
     });
 
