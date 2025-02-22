@@ -143,4 +143,5 @@ client.on(Events.MessageCreate, async (message) => {
   connection.subscribe(player);
 });
 
+
 client.login(process.env.DISCORD_TOKEN);
