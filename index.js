@@ -1,24 +1,29 @@
-const {
+import {
   Client,
   Collection,
   Events,
   GatewayIntentBits,
   MessageFlags,
-} = require("discord.js");
-const {
+} from "discord.js";
+import {
   joinVoiceChannel,
   getVoiceConnection,
   createAudioPlayer,
   createAudioResource,
   StreamType,
-} = require("@discordjs/voice");
-const { Readable } = require("node:stream");
-const path = require("node:path");
-const fs = require("node:fs");
-require("dotenv").config();
+} from "@discordjs/voice";
+import { Readable } from "node:stream";
+import path from "node:path";
+import fs from "node:fs";
+import dotenv from "dotenv";
 
-const db = require("./db");
-const { textToSpeech, checkVoiceVox } = require("./voicevox");
+import { db } from "./db.js";
+import { textToSpeech, checkVoiceVox } from "./voicevox.js";
+
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 (async () => {
   const isReady = await checkVoiceVox();
@@ -29,7 +34,8 @@ const { textToSpeech, checkVoiceVox } = require("./voicevox");
     throw new Error("VoiceVox is not ready.");
   }
 })();
-require("./deploy-commands");
+
+import "./deploy-commands.js";
 
 const client = new Client({
   intents: [
@@ -52,7 +58,8 @@ for (const folder of commandFolders) {
     .filter((file) => file.endsWith(".js"));
   for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
-    const command = require(filePath);
+    const commandModule = await import(filePath);
+    const command = commandModule.default || commandModule;
     // Set a new item in the Collection with the key as the command name and the value as the exported module
     if ("data" in command && "execute" in command) {
       client.commands.set(command.data.name, command);

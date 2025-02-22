@@ -1,13 +1,13 @@
-const { SlashCommandBuilder } = require("discord.js");
-const db = require("../../db");
+import { SlashCommandBuilder } from "discord.js";
+import { db } from "../../db.js";
 
-const { getSpeakers } = require("../../voicevox");
+import { getSpeakers } from "../../voicevox.js";
 
 const normalSpeakers = getSpeakers()
   .filter((s) => s.name.includes("ノーマル"))
   .map((s) => ({ name: s.name.replace(" ノーマル", ""), value: s.value }));
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName("setspeaker")
     .setDescription("ボイスの話者を設定します")

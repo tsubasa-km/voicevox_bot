@@ -1,8 +1,8 @@
-const { getVoiceConnection } = require("@discordjs/voice");
-const { joinVoiceChannel } = require("@discordjs/voice");
-const { SlashCommandBuilder, CommandInteraction } = require("discord.js");
+import { getVoiceConnection } from "@discordjs/voice";
+import { joinVoiceChannel } from "@discordjs/voice";
+import { SlashCommandBuilder, CommandInteraction } from "discord.js";
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName("vc")
     .setDescription("読み上げを開始・終了します。"),

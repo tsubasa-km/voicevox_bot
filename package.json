@@ -17,5 +17,6 @@
     "keyv": "^5.2.3",
     "libsodium-wrappers": "^0.7.15",
     "nodemon": "^3.1.9"
-  }
+  },
+  "type": "module"
 }

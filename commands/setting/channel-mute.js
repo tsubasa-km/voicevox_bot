@@ -1,13 +1,13 @@
-const { SlashCommandBuilder } = require("discord.js");
+import { SlashCommandBuilder } from "discord.js";
+import { db } from "../../db.js";
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName("channel-mute")
     .setDescription(
       "このコマンドを実行したテキストチャンネルの読み上げを停止・再開します。"
     ),
   async execute(interaction) {
-    const db = require("../../db");
     const channel = interaction.channel;
     const guildId = channel.guild.id;
     const channelId = channel.id;

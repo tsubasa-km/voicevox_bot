@@ -50,4 +50,4 @@ function getSpeakers() {
     .then((data) => data.speakers);
 }
 
-module.exports = { textToSpeech, checkVoiceVox, getSpeakers };
+export { textToSpeech, checkVoiceVox, getSpeakers };

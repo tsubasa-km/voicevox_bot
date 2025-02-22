@@ -1,8 +1,9 @@
-const { SlashCommandBuilder } = require("discord.js");
+import { SlashCommandBuilder } from "discord.js";
+import { db } from "../../db.js";
 
 const options = [{ name: "自動接続", value: "autoconnect", default: "off" }];
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName("server-setting")
     .setDescription("サーバーの設定を変更します。")
@@ -24,7 +25,6 @@ module.exports = {
     const option = interaction.options.getString("option");
     const value = interaction.options.getString("value");
 
-    const db = require("../../db");
     const guildId = interaction.guild.id;
 
     await db.set(`${guildId}-${option}`, value);
