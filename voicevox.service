@@ -1,0 +1,13 @@
+[Unit]
+Description=VOICEVOX Engine Service
+After=network.target
+
+[Service]
+WorkingDirectory=/home/tsubasa/VOICEVOX/vv-engine
+ExecStart=/home/tsubasa/VOICEVOX/vv-engine/run
+Restart=always
+User=tsubasa
+Group=sudo
+
+[Install]
+WantedBy=multi-user.target
