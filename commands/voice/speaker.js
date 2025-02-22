@@ -1,9 +1,9 @@
 const { SlashCommandBuilder } = require("discord.js");
 const db = require("../../db");
 
-const { speakers } = require("../../voicevox");
+const { getSpeakers } = require("../../voicevox");
 
-const normalSpeakers = speakers
+const normalSpeakers = getSpeakers()
   .filter((s) => s.name.includes("ノーマル"))
   .map((s) => ({ name: s.name.replace(" ノーマル", ""), value: s.value }));
 
@@ -20,7 +20,7 @@ module.exports = {
     ),
   async execute(interaction) {
     const speaker = interaction.options.getString("speaker");
-    const speakerName = speakers.find((s) => s.value === speaker).name;
+    const speakerName = normalSpeakers.find((s) => s.value === speaker).name;
 
     await db.set(
       `${interaction.guildId}-speaker-${interaction.member.user.id}`,
