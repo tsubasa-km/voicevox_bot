@@ -3,7 +3,11 @@ import { db } from "../../db.js";
 
 import { getSpeakers } from "../../voicevox.js";
 
-const normalSpeakers = getSpeakers()
+const speakers = await getSpeakers();
+
+// console.log(speakers);
+
+const normalSpeakers = speakers
   .filter((s) => s.name.includes("ノーマル"))
   .map((s) => ({ name: s.name.replace(" ノーマル", ""), value: s.value }));
 
@@ -20,7 +24,7 @@ export default {
     ),
   async execute(interaction) {
     const speaker = interaction.options.getString("speaker");
-    const speakerName = normalSpeakers.find((s) => s.value === speaker).name;
+    const speakerName = speakers.find((s) => s.value === speaker).name;
 
     await db.set(
       `${interaction.guildId}-speaker-${interaction.member.user.id}`,

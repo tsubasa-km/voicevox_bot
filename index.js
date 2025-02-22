@@ -15,6 +15,7 @@ import {
 import { Readable } from "node:stream";
 import path from "node:path";
 import fs from "node:fs";
+import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 
 import { db } from "./db.js";
@@ -25,15 +26,12 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-(async () => {
-  const isReady = await checkVoiceVox();
-  console.log(isReady);
-  if (isReady) {
-    console.log("VoiceVox is ready.");
-  } else {
-    throw new Error("VoiceVox is not ready.");
-  }
-})();
+
+if (await checkVoiceVox()) {
+  console.log("VoiceVox is ready.");
+} else {
+  throw new Error("VoiceVox is not ready.");
+}
 
 import "./deploy-commands.js";
 
