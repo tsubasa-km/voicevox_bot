@@ -130,10 +130,7 @@ client.on(Events.MessageCreate, async (message) => {
   );
   if (isMuted === "on") return;
 
-  const speaker =
-    (await db.get(`${message.guild.id}-speaker-${message.author.id}`)) ?? "3";
-
-  const buffer = await textToSpeech(message.content, parseInt(speaker));
+  const buffer = await textToSpeech(message.content, message.guild.id, message.author.id);
   const audioStream = new Readable();
   audioStream.push(buffer);
   audioStream.push(null);

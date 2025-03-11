@@ -3,13 +3,11 @@ import { db } from "../../db.js";
 
 import { getSpeakers } from "../../voicevox.js";
 
-const speakers = await getSpeakers();
+const speakers = (await getSpeakers())
+  .map(s => ({ name: s.name, value: `${s.styles[0].id}` }))
+  .slice(0, 25);
 
-// console.log(speakers);
-
-const normalSpeakers = speakers
-  .filter((s) => s.name.includes("ノーマル"))
-  .map((s) => ({ name: s.name.replace(" ノーマル", ""), value: s.value }));
+console.log(speakers);
 
 export default {
   data: new SlashCommandBuilder()
@@ -20,15 +18,15 @@ export default {
         .setName("speaker")
         .setDescription("話者の名前")
         .setRequired(true)
-        .addChoices(...normalSpeakers)
+        .addChoices(...speakers)
     ),
   async execute(interaction) {
-    const speaker = interaction.options.getString("speaker");
-    const speakerName = speakers.find((s) => s.value === speaker).name;
+    const speakerId = interaction.options.getString("speaker");
+    const speakerName = speakers.find((s) => s.value === speakerId).name;
 
     await db.set(
       `${interaction.guildId}-speaker-${interaction.member.user.id}`,
-      speaker
+      speakerId
     );
 
     const userMention = interaction.member.toString();
