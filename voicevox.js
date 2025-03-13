@@ -1,3 +1,4 @@
+import emojiRegex from "emoji-regex";
 import { db } from "./db.js";
 
 const baseURL = "http://127.0.0.1:50021";
@@ -7,7 +8,7 @@ export async function textToSpeech(text, guildId, userId) {
 
   try {
     const queryResponse = await fetch(
-      `${baseURL}/audio_query?text=${text}&speaker=${speakerId}`,
+      `${baseURL}/audio_query?text=${formatText(text)}&speaker=${speakerId}`,
       {
         method: "POST",
         headers: {
@@ -52,6 +53,21 @@ export async function checkVoiceVox() {
   } catch (error) {
     return null;
   }
+}
+
+/**
+ * @param {string} text
+ */
+export function formatText(text) {
+  const emoji = emojiRegex();
+  const customEmoji = /<a?:\w+:\d+>/g;
+  const url = /https?:\/\/\S+/g;
+
+  text = text.replaceAll(emoji, "絵文字");
+  text = text.replaceAll(customEmoji, "絵文字");
+  text = text.replaceAll(url, "URL");
+
+  return text;
 }
 
 export async function getSpeakers() {
