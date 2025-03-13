@@ -1,10 +1,10 @@
 cd /home/tsubasa/git-repositories/voicevox_bot/
 
-forever stop index.js
+forever stop ./
 
 git pull
 
 npm install
 
-forever start index.js
+forever start -c "npm start" ./
 
