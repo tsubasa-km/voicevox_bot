@@ -4,14 +4,10 @@ const baseURL = "http://127.0.0.1:50021";
 
 export async function textToSpeech(text, guildId, userId) {
   const speakerId = (await db.get(`${guildId}-speaker-${userId}`)) ?? "3";
-  const core_version = JSON.stringify({
-    pitchScale: (await db.get(`${guildId}-pitch-${userId}`)) ?? 1.0,
-    speedScale: (await db.get(`${guildId}-speed-${userId}`)) ?? 1.0
-  })
-  console.log(core_version);
+
   try {
     const queryResponse = await fetch(
-      `${baseURL}/audio_query?text=${text}&speaker=${speakerId}&speed=${core_version.speedScale}&pitch=${core_version.pitchScale}`,
+      `${baseURL}/audio_query?text=${text}&speaker=${speakerId}`,
       {
         method: "POST",
         headers: {
@@ -20,6 +16,14 @@ export async function textToSpeech(text, guildId, userId) {
       }
     );
     const queryData = await queryResponse.json();
+
+    const pitchScale = (await db.get(`${guildId}-pitch-${userId}`)) ?? 1.0;
+    const speedScale = (await db.get(`${guildId}-speed-${userId}`)) ?? 0.0;
+
+    queryData.pitchScale = pitchScale;
+    queryData.speedScale = speedScale;
+
+    console.log(queryData);
 
     const synthesisResponse = await fetch(
       `${baseURL}/synthesis?speaker=${speakerId}`,
