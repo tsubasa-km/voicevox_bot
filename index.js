@@ -18,8 +18,8 @@ import fs from "node:fs";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 
-import { db } from "./db.js";
-import { textToSpeech, checkVoiceVox } from "./voicevox.js";
+import { db } from "./src/db.js";
+import { textToSpeech, checkVoiceVox } from "./src/voicevox.js";
 
 dotenv.config();
 
@@ -33,7 +33,7 @@ if (await checkVoiceVox()) {
   throw new Error("VoiceVox is not ready.");
 }
 
-import "./deploy-commands.js";
+import "./src/deploy-commands.js";
 
 const client = new Client({
   intents: [
