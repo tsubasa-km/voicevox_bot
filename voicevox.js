@@ -17,13 +17,11 @@ export async function textToSpeech(text, guildId, userId) {
     );
     const queryData = await queryResponse.json();
 
-    const pitchScale = (await db.get(`${guildId}-pitch-${userId}`)) ?? 1.0;
-    const speedScale = (await db.get(`${guildId}-speed-${userId}`)) ?? 0.0;
+    const pitchScale = (await db.get(`${guildId}-pitch-${userId}`)) ?? 0.0;
+    const speedScale = (await db.get(`${guildId}-speed-${userId}`)) ?? 1.0;
 
     queryData.pitchScale = pitchScale;
     queryData.speedScale = speedScale;
-
-    console.log(queryData);
 
     const synthesisResponse = await fetch(
       `${baseURL}/synthesis?speaker=${speakerId}`,
