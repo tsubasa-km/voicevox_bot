@@ -103,9 +103,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
 client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
   if (newState.member.user.bot) return;
   if (oldState.channelId === newState.channelId) return;
-  if (newState.channelId === null && oldState.member.size === 1) {
+  if (oldState.channel) {
     const connection = getVoiceConnection(oldState.guild.id);
-    if (connection) {
+    if (oldState.channel.members.size === 1 && connection) {
       connection.destroy();
     }
   }
