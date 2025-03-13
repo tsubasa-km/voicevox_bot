@@ -101,23 +101,25 @@ client.on(Events.InteractionCreate, async (interaction) => {
 });
 
 client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
-  if (newState.member.user.bot) return;
-  if (oldState.channelId === newState.channelId) return;
-  if (oldState.channel) {
+  if (newState.member.user.bot || oldState.channelId === newState.channelId) return;
+  if (oldState.channel && oldState.channel.members.size === 1) {
     const connection = getVoiceConnection(oldState.guild.id);
-    if (oldState.channel.members.size === 1 && connection) {
+    console.log(oldState.channel.members.size);
+    if (connection) {
       connection.destroy();
     }
   }
-  const autoconnect = await db.get(`${newState.guild.id}-autoconnect`);
-  if (autoconnect === "on") {
-    joinVoiceChannel({
-      channelId: newState.channelId,
-      guildId: newState.guild.id,
-      adapterCreator: newState.guild.voiceAdapterCreator,
-      selfMute: false,
-      selfDeaf: false,
-    });
+  if (newState.channel && (!oldState.channel || oldState.channel.members.size === 1)) {
+    const autoconnect = await db.get(`${newState.guild.id}-autoconnect`);
+    if (autoconnect === "on") {
+      joinVoiceChannel({
+        channelId: newState.channelId,
+        guildId: newState.guild.id,
+        adapterCreator: newState.guild.voiceAdapterCreator,
+        selfMute: false,
+        selfDeaf: false,
+      });
+    }
   }
 });
 
