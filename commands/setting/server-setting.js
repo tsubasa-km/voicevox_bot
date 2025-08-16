@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from "discord.js";
-import { db } from "../../db.js";
+import { db } from "../../src/db.js";
 
 const options = [{ name: "自動接続", value: "autoconnect", default: "off" }];
 
