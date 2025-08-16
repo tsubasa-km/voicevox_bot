@@ -11,15 +11,11 @@
   "description": "",
   "dependencies": {
     "@discordjs/voice": "^0.18.0",
-    "@keyv/sqlite": "^4.0.1",
-    "discord.js": "^14.18.0",
-    "dotenv": "^16.4.7",
+    "@keyv/sqlite": "^4.0.5",
+    "discord.js": "^14.21.0",
+    "dotenv": "^17.2.1",
     "emoji-regex": "^10.4.0",
-    "express": "^4.21.2",
-    "ffmpeg-static": "^5.2.0",
-    "keyv": "^5.2.3",
-    "libsodium-wrappers": "^0.7.15",
-    "nodemon": "^3.1.9"
+    "keyv": "^5.5.0"
   },
   "type": "module"
 }

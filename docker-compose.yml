@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # VOICEVOX Engine サービス
+  voicevox:
+    image: voicevox/voicevox_engine:cpu-latest
+    container_name: voicevox_engine
+    ports:
+      - "50021:50021"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:50021/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - voicevox_network
+
+  # Discord Bot サービス
+  discord_bot:
+    build: .
+    container_name: voicevox_discord_bot
+    depends_on:
+      - voicevox
+    environment:
+      - NODE_ENV=production
+      - VOICEVOX_API_URL=http://voicevox:50021
+    env_file:
+      - .env
+    volumes:
+      - ./database.sqlite:/app/database.sqlite
+    restart: unless-stopped
+    networks:
+      - voicevox_network
+    command: sh -c "npm install && npm start"
+
+networks:
+  voicevox_network:
+    driver: bridge
+
+volumes:
+  voicevox_data:
+    driver: local

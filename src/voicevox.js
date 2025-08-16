@@ -1,7 +1,7 @@
 import emojiRegex from "emoji-regex";
 import { db } from "./db.js";
 
-const baseURL = "http://127.0.0.1:50021";
+const baseURL = process.env.VOICEVOX_API_URL || "http://127.0.0.1:50021";
 
 export async function textToSpeech(text, guildId, userId) {
   const speakerId = (await db.get(`${guildId}-speaker-${userId}`)) ?? "3";
