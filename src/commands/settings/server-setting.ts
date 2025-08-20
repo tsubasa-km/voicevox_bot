@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
-import { db } from "@/services/database.js";
+import { settingsService } from "@/services/settings.js";
 
 interface SettingOption {
   name: string;
@@ -45,9 +45,11 @@ export default {
 
     // 設定に応じた専用メソッドを使用
     if (option === "autoconnect") {
-      await db.setGuildAutoConnect(guildId, value === "on");
+      await settingsService.setAutoConnect(guildId, value === "on");
     } else {
-      await db.set(`${guildId}-${option}`, value);
+      // 他の設定項目があれば、ここで処理を追加
+      await interaction.reply(`設定オプション ${option} は現在サポートされていません。`);
+      return;
     }
 
     await interaction.reply(

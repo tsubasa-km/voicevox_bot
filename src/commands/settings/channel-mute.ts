@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, TextChannel } from "discord.js";
-import { db } from "@/services/database.js";
+import { settingsService } from "@/services/settings.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -17,14 +17,12 @@ export default {
     const guildId = channel.guild.id;
     const channelId = channel.id;
     
-    const isCurrentlyMuted = await db.isChannelMuted(guildId, channelId);
+    const newMuteState = await settingsService.toggleChannelMute(guildId, channelId);
     
-    if (isCurrentlyMuted) {
-      await db.setChannelMute(guildId, channelId, false);
-      await interaction.reply("読み上げを再開します。");
-    } else {
-      await db.setChannelMute(guildId, channelId, true);
+    if (newMuteState) {
       await interaction.reply("読み上げを停止します。");
+    } else {
+      await interaction.reply("読み上げを再開します。");
     }
   },
 };
