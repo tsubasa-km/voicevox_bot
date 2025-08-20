@@ -34,7 +34,11 @@ export class VoiceVoxBot {
     this.client.commands = await CommandLoader.loadCommands();
 
     // イベントハンドラーの設定
-    this.client.on(Events.ClientReady, handleClientReady);
+    this.client.on(Events.ClientReady, (client) => {
+      handleClientReady(client).catch(error => {
+        ErrorHandler.logError("Ready event handler", error);
+      });
+    });
     this.client.on(Events.InteractionCreate, handleInteraction);
     this.client.on(Events.VoiceStateUpdate, handleVoiceStateUpdate);
     this.client.on(Events.MessageCreate, handleMessage);

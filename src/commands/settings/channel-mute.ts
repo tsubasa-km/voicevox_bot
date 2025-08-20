@@ -5,7 +5,7 @@ export default {
   data: new SlashCommandBuilder()
     .setName("channel-mute")
     .setDescription(
-      "このコマンドを実行したテキストチャンネルの読み上げを停止・再開します。"
+      "このチャンネルの読み上げをミュート/ミュート解除します。"
     ),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const channel = interaction.channel as TextChannel;
@@ -20,9 +20,9 @@ export default {
     const newMuteState = await settingsService.toggleChannelMute(guildId, channelId);
     
     if (newMuteState) {
-      await interaction.reply("読み上げを停止します。");
+      await interaction.reply(`🔇 このチャンネル（${channel.name}）の読み上げをミュートしました。`);
     } else {
-      await interaction.reply("読み上げを再開します。");
+      await interaction.reply(`🔊 このチャンネル（${channel.name}）の読み上げミュートを解除しました。`);
     }
   },
 };

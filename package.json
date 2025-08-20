@@ -8,7 +8,9 @@
     "build": "tsc",
     "serve": "node dist/index.js",
     "api": "node dist/src/api.js",
-    "api:dev": "tsx src/api.ts"
+    "api:dev": "tsx src/api.ts",
+    "deploy:commands": "tsx src/bot/commands/deployer.ts",
+    "clear:commands": "tsx src/bot/commands/deployer.ts --clear"
   },
   "author": "",
   "license": "ISC",

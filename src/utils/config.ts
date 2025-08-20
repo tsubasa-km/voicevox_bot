@@ -13,6 +13,7 @@ export interface Config {
   database: {
     path: string;
   };
+  isDevelopment: boolean;
 }
 
 export const config: Config = {
@@ -26,6 +27,7 @@ export const config: Config = {
   database: {
     path: process.env.DATABASE_PATH || "sqlite://database.sqlite",
   },
+  isDevelopment: process.env.NODE_ENV !== "production",
 };
 
 // 必要な環境変数の検証
