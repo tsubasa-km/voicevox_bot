@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
-import { db } from "../../src/db.js";
+import { db } from "../../services/database.js";
 
 interface SettingOption {
   name: string;

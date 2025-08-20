@@ -1,7 +1,7 @@
 import { Keyv } from "keyv";
 import { KeyvSqlite } from "@keyv/sqlite";
-import { config } from "./config.js";
-import { UserVoiceSettings, GuildSettings } from "./types.js";
+import { config } from "../utils/config.js";
+import { UserVoiceSettings } from "../types/voicevox.js";
 
 class DatabaseService {
   private db: Keyv;

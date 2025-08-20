@@ -1,8 +1,8 @@
 import emojiRegex from "emoji-regex";
-import { config } from "./config.js";
-import { db } from "./db.js";
-import { ErrorHandler } from "./error-handler.js";
-import { AudioQueryData, VoiceVoxVersion, Speaker } from "./types.js";
+import { config } from "../utils/config.js";
+import { db } from "./database.js";
+import { ErrorHandler } from "../utils/error-handler.js";
+import { AudioQueryData, VoiceVoxVersion, Speaker } from "../types/voicevox.js";
 
 export class VoiceVoxService {
   private baseURL: string;

@@ -1,7 +1,7 @@
 import { REST, Routes } from "discord.js";
-import { config } from "./config.js";
-import { CommandLoader } from "./command-loader.js";
-import { ErrorHandler } from "./error-handler.js";
+import { config } from "../../utils/config.js";
+import { CommandLoader } from "./loader.js";
+import { ErrorHandler } from "../../utils/error-handler.js";
 
 class CommandDeployer {
   private rest: REST;

@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMember, VoiceChannel, ChannelType } from "discord.js";
-import { voiceService } from "../../src/voice-service.js";
+import { voiceService } from "../../services/voice.js";
 
 export default {
   data: new SlashCommandBuilder()
