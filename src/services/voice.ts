@@ -7,9 +7,9 @@ import {
 } from "@discordjs/voice";
 import { Readable } from "node:stream";
 import { Guild, VoiceChannel } from "discord.js";
-import { voiceVoxService } from "./voicevox.js";
-import { db } from "./database.js";
-import { ErrorHandler } from "../utils/error-handler.js";
+import { voiceVoxService } from "@/services/voicevox.js";
+import { db } from "@/services/database.js";
+import { ErrorHandler } from "@/utils/error-handler.js";
 
 export class VoiceService {
   async playTextToSpeech(

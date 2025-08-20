@@ -2,8 +2,9 @@ import { Collection } from "discord.js";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "url";
-import { Command } from "../../types/discord.js";
-import { ErrorHandler } from "../../utils/error-handler.js";
+import { Command } from "@/types/discord.js";
+import { ErrorHandler } from "@/utils/error-handler.js";
+import { Logger } from "@/utils/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,8 +33,8 @@ export class CommandLoader {
             if ("data" in command && "execute" in command) {
               commands.set(command.data.name, command);
             } else {
-              console.warn(
-                `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
+              Logger.warn(
+                `The command at ${filePath} is missing a required "data" or "execute" property.`
               );
             }
           } catch (error) {
@@ -71,8 +72,8 @@ export class CommandLoader {
             if ("data" in command && "execute" in command) {
               commands.push(command.data.toJSON());
             } else {
-              console.warn(
-                `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
+              Logger.warn(
+                `The command at ${filePath} is missing a required "data" or "execute" property.`
               );
             }
           } catch (error) {

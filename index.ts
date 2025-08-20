@@ -1,18 +1,21 @@
 import { Collection } from "discord.js";
-import { voiceVoxService } from "./src/services/voicevox.js";
-import { VoiceVoxBot } from "./src/bot/client.js";
-import { Logger } from "./src/utils/logger.js";
-import { Command } from "./src/types/discord.js";
+import { voiceVoxService } from "@/services/voicevox.js";
+import { VoiceVoxBot } from "@/bot/client.js";
+import { Logger } from "@/utils/logger.js";
+import { Command } from "@/types/discord.js";
+import { config } from "@/utils/config.js";
 
 // VoiceVoxの準備確認
-if (await voiceVoxService.checkVoiceVox()) {
+const voiceVoxStatus = await voiceVoxService.checkVoiceVox();
+if (voiceVoxStatus) {
   Logger.info("VoiceVox is ready.");
 } else {
-  throw new Error("VoiceVox is not ready.");
+  Logger.error("VoiceVox is not ready. Please check if VOICEVOX Engine is running.");
+  throw new Error("VoiceVox is not ready. Please check if VOICEVOX Engine is running at " + config.voicevox.apiUrl);
 }
 
 // コマンドデプロイ
-import "./src/bot/commands/deployer.js";
+import "@/bot/commands/deployer.js";
 
 // Discord.jsクライアントの型拡張
 declare module "discord.js" {

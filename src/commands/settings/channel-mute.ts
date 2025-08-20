@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, TextChannel } from "discord.js";
-import { db } from "../../services/database.js";
+import { db } from "@/services/database.js";
 
 export default {
   data: new SlashCommandBuilder()

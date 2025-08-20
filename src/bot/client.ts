@@ -4,9 +4,9 @@ import {
   GatewayIntentBits,
 } from "discord.js";
 
-import { config } from "../utils/config.js";
-import { ErrorHandler } from "../utils/error-handler.js";
-import { Logger } from "../utils/logger.js";
+import { config } from "@/utils/config.js";
+import { ErrorHandler } from "@/utils/error-handler.js";
+import { Logger } from "@/utils/logger.js";
 import { CommandLoader } from "./commands/loader.js";
 import { handleClientReady } from "./events/ready.js";
 import { handleInteraction } from "./events/interaction.js";

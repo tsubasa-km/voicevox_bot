@@ -1,6 +1,6 @@
 import { BaseInteraction } from "discord.js";
-import { ErrorHandler } from "../../utils/error-handler.js";
-import { Logger } from "../../utils/logger.js";
+import { ErrorHandler } from "@/utils/error-handler.js";
+import { Logger } from "@/utils/logger.js";
 
 export async function handleInteraction(interaction: BaseInteraction): Promise<void> {
   if (!interaction.isChatInputCommand()) return;

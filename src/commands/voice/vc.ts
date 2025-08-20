@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMember, VoiceChannel, ChannelType } from "discord.js";
-import { voiceService } from "../../services/voice.js";
+import { voiceService } from "@/services/voice.js";
+import { ErrorHandler } from "@/utils/error-handler.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -31,7 +32,7 @@ export default {
       voiceService.joinVoiceChannel(channel as VoiceChannel);
       await interaction.reply("読み上げを開始します。");
     } catch (error) {
-      console.error("Failed to join voice channel:", error);
+      ErrorHandler.logError("Join voice channel", error as Error);
       await interaction.reply("ボイスチャンネルへの接続に失敗しました。");
     }
   },

@@ -1,8 +1,8 @@
 import { Message } from "discord.js";
 import { getVoiceConnection } from "@discordjs/voice";
-import { db } from "../../services/database.js";
-import { voiceService } from "../../services/voice.js";
-import { TextFilter } from "../../utils/text-filter.js";
+import { db } from "@/services/database.js";
+import { voiceService } from "@/services/voice.js";
+import { TextFilter } from "@/utils/text-filter.js";
 
 export async function handleMessage(message: Message): Promise<void> {
   // ボットのメッセージまたはDMは無視

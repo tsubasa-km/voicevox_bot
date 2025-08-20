@@ -1,14 +1,15 @@
 import { Keyv } from "keyv";
 import { KeyvSqlite } from "@keyv/sqlite";
-import { config } from "../utils/config.js";
-import { UserVoiceSettings } from "../types/voicevox.js";
+import { config } from "@/utils/config.js";
+import { UserVoiceSettings } from "@/types/voicevox.js";
+import { ErrorHandler } from "@/utils/error-handler.js";
 
 class DatabaseService {
   private db: Keyv;
 
   constructor() {
     this.db = new Keyv(new KeyvSqlite(config.database.path));
-    this.db.on("error", (err: Error) => console.error("Keyv connection error:", err));
+    this.db.on("error", (err: Error) => ErrorHandler.logError("Database connection", err));
   }
 
   // ユーザーの音声設定

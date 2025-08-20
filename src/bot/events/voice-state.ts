@@ -1,6 +1,6 @@
 import { VoiceState } from "discord.js";
 import { getVoiceConnection } from "@discordjs/voice";
-import { voiceService } from "../../services/voice.js";
+import { voiceService } from "@/services/voice.js";
 
 export async function handleVoiceStateUpdate(
   oldState: VoiceState,

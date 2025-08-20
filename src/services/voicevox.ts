@@ -1,8 +1,8 @@
-import { config } from "../utils/config.js";
-import { db } from "./database.js";
-import { ErrorHandler } from "../utils/error-handler.js";
-import { TextFilter } from "../utils/text-filter.js";
-import { AudioQueryData, VoiceVoxVersion, Speaker } from "../types/voicevox.js";
+import { config } from "@/utils/config.js";
+import { db } from "@/services/database.js";
+import { ErrorHandler } from "@/utils/error-handler.js";
+import { TextFilter } from "@/utils/text-filter.js";
+import { AudioQueryData, VoiceVoxVersion, Speaker } from "@/types/voicevox.js";
 
 export class VoiceVoxService {
   private baseURL: string;

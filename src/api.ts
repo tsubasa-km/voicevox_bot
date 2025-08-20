@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serve } from '@hono/node-server';
-import { db } from './services/database.js';
+import { db } from '@/services/database.js';
+import { Logger } from '@/utils/logger.js';
 
 const app = new Hono();
 
@@ -14,7 +15,7 @@ app.use('/*', cors({
 
 // エラーハンドリングミドルウェア
 app.onError((err, c) => {
-  console.error('API Error:', err);
+  Logger.error('API Error:', err);
   return c.json({ error: 'Internal Server Error' }, 500);
 });
 
@@ -123,7 +124,7 @@ app.get('/health', (c) => {
 
 const port = Number(process.env.API_PORT) || 3000;
 
-console.log(`API Server is running on port ${port}`);
+Logger.info(`API Server is running on port ${port}`);
 
 serve({
   fetch: app.fetch,

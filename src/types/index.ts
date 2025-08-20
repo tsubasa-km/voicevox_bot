@@ -1,4 +1,4 @@
 // 全ての型をエクスポート
-export * from "./discord.js";
-export * from "./voicevox.js";
-export * from "./database.js";
+export * from "@/types/discord.js";
+export * from "@/types/voicevox.js";
+export * from "@/types/database.js";
