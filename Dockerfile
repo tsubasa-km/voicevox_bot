@@ -11,12 +11,19 @@ WORKDIR /app
 
 # パッケージファイルをコピー
 COPY package*.json ./
+COPY tsconfig.json ./
 
 # 依存関係をインストール
-RUN npm install -g npm && npm install --production
+RUN npm install -g npm && npm install
 
 # アプリケーションのソースをコピー
 COPY . .
+
+# TypeScriptをビルド
+RUN npm run build
+
+# プロダクション用の依存関係のみインストール
+RUN npm ci --only=production && npm cache clean --force
 
 # アプリケーションを起動
 CMD ["npm", "start"]

@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, TextChannel } from "discord.js";
 import { db } from "../../src/db.js";
 
 export default {
@@ -7,8 +7,13 @@ export default {
     .setDescription(
       "このコマンドを実行したテキストチャンネルの読み上げを停止・再開します。"
     ),
-  async execute(interaction) {
-    const channel = interaction.channel;
+  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    const channel = interaction.channel as TextChannel;
+    if (!channel || !channel.guild) {
+      await interaction.reply("このコマンドはサーバー内のテキストチャンネルでのみ使用できます。");
+      return;
+    }
+    
     const guildId = channel.guild.id;
     const channelId = channel.id;
     const channelMute = await db.get(`${guildId}-channel-mute-${channelId}`);

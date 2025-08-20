@@ -1,7 +1,13 @@
-import { SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import { db } from "../../src/db.js";
 
-const options = [{ name: "自動接続", value: "autoconnect", default: "off" }];
+interface SettingOption {
+  name: string;
+  value: string;
+  default: string;
+}
+
+const options: SettingOption[] = [{ name: "自動接続", value: "autoconnect", default: "off" }];
 
 export default {
   data: new SlashCommandBuilder()
@@ -21,9 +27,14 @@ export default {
         .addChoices({ name: "on", value: "on" }, { name: "off", value: "off" })
         .setRequired(true)
     ),
-  async execute(interaction) {
+  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const option = interaction.options.getString("option");
     const value = interaction.options.getString("value");
+
+    if (!interaction.guild) {
+      await interaction.reply("このコマンドはサーバー内でのみ使用できます。");
+      return;
+    }
 
     const guildId = interaction.guild.id;
 

@@ -1,23 +1,23 @@
 import { getVoiceConnection } from "@discordjs/voice";
 import { joinVoiceChannel } from "@discordjs/voice";
-import { SlashCommandBuilder, CommandInteraction } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMember } from "discord.js";
 
 export default {
   data: new SlashCommandBuilder()
     .setName("vc")
     .setDescription("読み上げを開始・終了します。"),
-  /**
-   * @param {CommandInteraction} interaction
-   */
-  async execute(interaction) {
-    const channel = interaction.member.voice.channel;
+  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    const member = interaction.member as GuildMember;
+    const channel = member?.voice.channel;
     if (!channel) {
-      return interaction.reply("ボイスチャンネルにいません。");
+      await interaction.reply("ボイスチャンネルにいません。");
+      return;
     }
     let connection = getVoiceConnection(channel.guild.id);
     if (connection) {
       connection.destroy();
-      return interaction.reply("読み上げを終了します。");
+      await interaction.reply("読み上げを終了します。");
+      return;
     }
     await interaction.reply("読み上げを開始します。");
     connection = joinVoiceChannel({

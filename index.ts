@@ -4,6 +4,10 @@ import {
   Events,
   GatewayIntentBits,
   MessageFlags,
+  ChatInputCommandInteraction,
+  VoiceState,
+  Message,
+  BaseInteraction,
 } from "discord.js";
 import {
   joinVoiceChannel,
@@ -26,6 +30,16 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+interface Command {
+  data: any;
+  execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
+}
+
+declare module "discord.js" {
+  export interface Client {
+    commands: Collection<string, Command>;
+  }
+}
 
 if (await checkVoiceVox()) {
   console.log("VoiceVox is ready.");
@@ -53,11 +67,11 @@ for (const folder of commandFolders) {
   const commandsPath = path.join(foldersPath, folder);
   const commandFiles = fs
     .readdirSync(commandsPath)
-    .filter((file) => file.endsWith(".js"));
+    .filter((file) => file.endsWith(".js") || file.endsWith(".ts"));
   for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
     const commandModule = await import(filePath);
-    const command = commandModule.default || commandModule;
+    const command: Command = commandModule.default || commandModule;
     // Set a new item in the Collection with the key as the command name and the value as the exported module
     if ("data" in command && "execute" in command) {
       client.commands.set(command.data.name, command);
@@ -69,11 +83,11 @@ for (const folder of commandFolders) {
   }
 }
 
-client.on(Events.ClientReady, (readyClient) => {
+client.on(Events.ClientReady, (readyClient: Client<true>) => {
   console.log(`Logged in as ${readyClient.user.tag}!`);
 });
 
-client.on(Events.InteractionCreate, async (interaction) => {
+client.on(Events.InteractionCreate, async (interaction: BaseInteraction) => {
   if (!interaction.isChatInputCommand()) return;
   const command = interaction.client.commands.get(interaction.commandName);
 
@@ -100,8 +114,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
-client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
-  if (newState.member.user.bot || oldState.channelId === newState.channelId) return;
+client.on(Events.VoiceStateUpdate, async (oldState: VoiceState, newState: VoiceState) => {
+  if (newState.member?.user.bot || oldState.channelId === newState.channelId) return;
   if (oldState.channel && oldState.channel.members.size === 1) {
     const connection = getVoiceConnection(oldState.guild.id);
     if (connection) {
@@ -112,7 +126,7 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
     const autoconnect = await db.get(`${newState.guild.id}-autoconnect`);
     if (autoconnect === "on") {
       joinVoiceChannel({
-        channelId: newState.channelId,
+        channelId: newState.channelId!,
         guildId: newState.guild.id,
         adapterCreator: newState.guild.voiceAdapterCreator,
         selfMute: false,
@@ -122,8 +136,9 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
   }
 });
 
-client.on(Events.MessageCreate, async (message) => {
+client.on(Events.MessageCreate, async (message: Message) => {
   if (message.author.bot) return;
+  if (!message.guild) return;
   const connection = getVoiceConnection(message.guild.id);
   if (!connection) return;
   const isMuted = await db.get(
@@ -132,6 +147,8 @@ client.on(Events.MessageCreate, async (message) => {
   if (isMuted === "on") return;
 
   const buffer = await textToSpeech(message.content, message.guild.id, message.author.id);
+  if (!buffer) return;
+  
   const audioStream = new Readable();
   audioStream.push(buffer);
   audioStream.push(null);
@@ -145,6 +162,5 @@ client.on(Events.MessageCreate, async (message) => {
 
   connection.subscribe(player);
 });
-
 
 client.login(process.env.DISCORD_TOKEN);

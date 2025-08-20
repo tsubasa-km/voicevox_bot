@@ -1,0 +1,8 @@
+{
+  "watch": ["**/*.ts", "**/*.js"],
+  "ignore": ["node_modules", "dist"],
+  "ext": "ts,js",
+  "env": {
+    "NODE_OPTIONS": "--loader ts-node/esm"
+  }
+}

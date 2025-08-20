@@ -1,10 +1,10 @@
-import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction } from "discord.js";
 
 export default {
   data: new SlashCommandBuilder()
     .setName("help")
     .setDescription("コマンドのヘルプを表示します"),
-  async execute(interaction) {
+  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const commands = interaction.client.commands;
     const helpEmbed = new EmbedBuilder()
       .setTitle("コマンド一覧")
