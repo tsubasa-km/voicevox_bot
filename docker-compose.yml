@@ -26,19 +26,41 @@ services:
     environment:
       - NODE_ENV=production
       - VOICEVOX_API_URL=http://voicevox:50021
+      - DATABASE_PATH=sqlite:///app/data/database.sqlite
     env_file:
       - .env
     volumes:
-      - ./database.sqlite:/app/database.sqlite
+      - database_data:/app/data
     restart: unless-stopped
     networks:
       - voicevox_network
     command: sh -c "npm install && npm start"
+
+  # API サーバー
+  api_server:
+    build: .
+    container_name: voicevox_api_server
+    depends_on:
+      - discord_bot
+    environment:
+      - NODE_ENV=production
+      - API_PORT=3000
+      - DATABASE_PATH=sqlite:///app/data/database.sqlite
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - database_data:/app/data
+    restart: unless-stopped
+    networks:
+      - voicevox_network
+    command: sh -c "npm install && npm run api"
 
 networks:
   voicevox_network:
     driver: bridge
 
 volumes:
-  voicevox_data:
+  database_data:
     driver: local

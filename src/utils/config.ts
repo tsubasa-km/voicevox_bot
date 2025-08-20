@@ -24,7 +24,7 @@ export const config: Config = {
     apiUrl: process.env.VOICEVOX_API_URL || "http://127.0.0.1:50021",
   },
   database: {
-    path: "sqlite://database.sqlite",
+    path: process.env.DATABASE_PATH || "sqlite://database.sqlite",
   },
 };
 
