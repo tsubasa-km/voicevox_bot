@@ -1,7 +1,7 @@
-import emojiRegex from "emoji-regex";
 import { config } from "../utils/config.js";
 import { db } from "./database.js";
 import { ErrorHandler } from "../utils/error-handler.js";
+import { TextFilter } from "../utils/text-filter.js";
 import { AudioQueryData, VoiceVoxVersion, Speaker } from "../types/voicevox.js";
 
 export class VoiceVoxService {
@@ -83,15 +83,7 @@ export class VoiceVoxService {
   }
 
   formatText(text: string): string {
-    const emoji = emojiRegex();
-    const customEmoji = /<a?:\w+:\d+>/g;
-    const url = /https?:\/\/\S+/g;
-
-    text = text.replaceAll(emoji, "絵文字");
-    text = text.replaceAll(customEmoji, "絵文字");
-    text = text.replaceAll(url, "URL");
-
-    return text;
+    return TextFilter.filterForSpeech(text);
   }
 
   async getSpeakers(): Promise<Speaker[]> {
