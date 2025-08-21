@@ -10,7 +10,11 @@
     "api": "node dist/src/api.js",
     "api:dev": "tsx src/api.ts",
     "deploy:commands": "tsx src/bot/commands/deployer.ts",
-    "clear:commands": "tsx src/bot/commands/deployer.ts --clear"
+    "clear:commands": "tsx src/bot/commands/deployer.ts --clear",
+    "clear:commands:global": "tsx src/bot/commands/deployer.ts --clear-global",
+    "clear:commands:guild": "tsx src/bot/commands/deployer.ts --clear-guild",
+    "status:commands": "tsx src/bot/commands/deployer.ts --status",
+    "help:commands": "tsx src/bot/commands/deployer.ts --help"
   },
   "author": "",
   "license": "ISC",
