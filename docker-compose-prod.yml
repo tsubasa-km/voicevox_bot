@@ -1,0 +1,37 @@
+services:
+  voicevox_bot:
+    build: .
+    container_name: voicevox_bot
+    restart: unless-stopped
+    environment:
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
+      - VOICEVOX_API_URL=${VOICEVOX_API_URL}
+      - DATABASE_URL=${DATABASE_URL}
+      - DEFAULT_SPEAKER_ID=${DEFAULT_SPEAKER_ID}
+      - MAX_UTTERANCE_LENGTH=${MAX_UTTERANCE_LENGTH}
+      - LOG_FILE_PATH=${LOG_FILE_PATH}
+      - LOG_LEVEL=${LOG_LEVEL}
+    depends_on:
+      - voicevox_engine
+  
+  db:
+    image: postgres:latest
+    container_name: voicevox_bot_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=voicevox_user
+      - POSTGRES_PASSWORD=secure_password
+      - POSTGRES_DB=voicevox_db
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  voicevox_engine:
+    image: voicevox/voicevox_engine:latest
+    container_name: voicevox_engine
+    restart: unless-stopped
+    ports:
+      - "50021:50021"
+
+volumes:
+  db_data:
