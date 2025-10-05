@@ -15,6 +15,31 @@ export const settingUserSpeakerCommandData = new SlashCommandBuilder()
           .addIntegerOption((option) =>
             option.setName('id').setDescription('話者ID (styles id)').setRequired(true)
           )
+          .addUserOption((option) =>
+            option.setName('target').setDescription('設定を変更するユーザー')
+          )
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName('pitch')
+          .setDescription('読み上げ時のピッチを設定します')
+          .addNumberOption((option) =>
+            option.setName('value').setDescription('ピッチ (float)').setRequired(true)
+          )
+          .addUserOption((option) =>
+            option.setName('target').setDescription('設定を変更するユーザー')
+          )
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName('speed')
+          .setDescription('読み上げ時のスピードを設定します')
+          .addNumberOption((option) =>
+            option.setName('value').setDescription('スピード (float)').setRequired(true)
+          )
+          .addUserOption((option) =>
+            option.setName('target').setDescription('設定を変更するユーザー')
+          )
       )
   )
   .addSubcommandGroup((group) =>
@@ -43,24 +68,57 @@ export function buildSettingUserSpeakerCommand(deps: CommandDependencies): Comma
       const group = interaction.options.getSubcommandGroup(true);
       const subcommand = interaction.options.getSubcommand(true);
 
-      if (group === 'user' && subcommand === 'speaker') {
-        const speakerId = interaction.options.getInteger('id', true);
+      if (group === 'user') {
+        const targetUser = interaction.options.getUser('target') ?? interaction.user;
+        const targetLabel =
+          targetUser.id === interaction.user.id ? 'あなた' : `${targetUser.toString()}`;
 
-        const styles = await deps.voiceVoxService.listSpeakerStyles();
-        const selected = styles.find((style) => style.styleId === speakerId);
+        if (subcommand === 'speaker') {
+          const speakerId = interaction.options.getInteger('id', true);
 
-        if (!selected) {
-          await interaction.reply({ content: `指定された話者ID (${speakerId}) は存在しません。`, ephemeral: true });
+          const styles = await deps.voiceVoxService.listSpeakerStyles();
+          const selected = styles.find((style) => style.styleId === speakerId);
+
+          if (!selected) {
+            await interaction.reply({
+              content: `指定された話者ID (${speakerId}) は存在しません。`,
+              ephemeral: true
+            });
+            return;
+          }
+
+          await deps.setUserSpeakerId(interaction.guild.id, targetUser.id, speakerId);
+
+          await interaction.reply({
+            content: `${targetLabel}の話者を「${selected.speakerName} - ${selected.styleName}」に設定しました。`,
+            ephemeral: true
+          });
           return;
         }
 
-        await deps.setUserSpeakerId(interaction.guild.id, interaction.user.id, speakerId);
+        if (subcommand === 'pitch') {
+          const value = interaction.options.getNumber('value', true);
 
-        await interaction.reply({
-          content: `話者を「${selected.speakerName} - ${selected.styleName}」に設定しました。`,
-          ephemeral: true
-        });
-        return;
+          await deps.setUserPitch(interaction.guild.id, targetUser.id, value, deps.defaultSpeakerId);
+
+          await interaction.reply({
+            content: `${targetLabel}のピッチを ${value} に設定しました。`,
+            ephemeral: true
+          });
+          return;
+        }
+
+        if (subcommand === 'speed') {
+          const value = interaction.options.getNumber('value', true);
+
+          await deps.setUserSpeed(interaction.guild.id, targetUser.id, value, deps.defaultSpeakerId);
+
+          await interaction.reply({
+            content: `${targetLabel}のスピードを ${value} に設定しました。`,
+            ephemeral: true
+          });
+          return;
+        }
       }
 
       if (group === 'server' && subcommand === 'autojoin') {

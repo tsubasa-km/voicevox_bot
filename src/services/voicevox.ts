@@ -15,6 +15,11 @@ export interface SpeakerStyleDescriptor {
   styleId: number;
 }
 
+export interface VoiceSynthesisOptions {
+  pitch?: number;
+  speed?: number;
+}
+
 export class VoiceVoxService {
   private speakersCache: VoiceVoxSpeaker[] | null = null;
 
@@ -47,7 +52,11 @@ export class VoiceVoxService {
     );
   }
 
-  async synthesizeSpeech(text: string, speakerId: number): Promise<Buffer> {
+  async synthesizeSpeech(
+    text: string,
+    speakerId: number,
+    options?: VoiceSynthesisOptions
+  ): Promise<Buffer> {
     const audioQueryUrl = new URL('/audio_query', this.baseUrl);
     audioQueryUrl.searchParams.set('speaker', speakerId.toString());
     audioQueryUrl.searchParams.set('text', text);
@@ -58,6 +67,13 @@ export class VoiceVoxService {
     }
 
     const audioQuery = await audioQueryResponse.json();
+
+    if (Number.isFinite(options?.speed)) {
+      audioQuery.speedScale = options?.speed;
+    }
+    if (Number.isFinite(options?.pitch)) {
+      audioQuery.pitchScale = options?.pitch;
+    }
 
     const synthesisUrl = new URL('/synthesis', this.baseUrl);
     synthesisUrl.searchParams.set('speaker', speakerId.toString());

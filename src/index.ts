@@ -5,7 +5,7 @@ import { VoiceVoxService } from '@/services/voicevox.js';
 import { VoiceManager } from '@/voice/voiceManager.js';
 import { buildCommands } from '@/commands/index.js';
 import type { Command } from '@/commands/types.js';
-import { getUserSpeakerId, setUserSpeakerId } from '@/db/userSpeakers.js';
+import { getUserVoiceSettings, setUserSpeakerId, setUserPitch, setUserSpeed, defaultPitch, defaultSpeed } from '@/db/userSpeakers.js';
 import { formatMessageContent } from '@/utils/textFormatter.js';
 import { logger } from '@/utils/logger.js';
 import { runMigrations, shutdownDb } from '@/db/pool.js';
@@ -79,8 +79,10 @@ async function bootstrap(): Promise<void> {
   const commands = buildCommands({
     voiceManager,
     voiceVoxService,
-    getUserSpeakerId,
+    getUserVoiceSettings,
     setUserSpeakerId,
+    setUserPitch,
+    setUserSpeed,
     defaultSpeakerId: config.defaultSpeakerId,
     getGuildSettings,
     setGuildAutoJoin,
@@ -133,10 +135,15 @@ async function bootstrap(): Promise<void> {
 
     const guildId = message.guild.id;
     await setGuildPreferredTextChannel(guildId, message.channelId);
-    const speakerId = (await getUserSpeakerId(guildId, message.author.id)) ?? config.defaultSpeakerId;
+    const userSettings = await getUserVoiceSettings(guildId, message.author.id);
+    const speakerId = userSettings?.speakerId ?? config.defaultSpeakerId;
+    const pitch = userSettings?.pitch ?? defaultPitch;
+    const speed = userSettings?.speed ?? defaultSpeed;
     const accepted = voiceManager.dispatchSpeech(guildId, message.channelId, {
       text: formatted,
-      speakerId
+      speakerId,
+      pitch,
+      speed
     });
 
     if (!accepted) {

@@ -18,6 +18,8 @@ import { logger } from '@/utils/logger.js';
 interface SpeechTask {
   text: string;
   speakerId: number;
+  pitch: number;
+  speed: number;
 }
 
 class VoiceSession {
@@ -92,7 +94,10 @@ class VoiceSession {
         }
 
         try {
-          const audioBuffer = await this.voiceVoxService.synthesizeSpeech(task.text, task.speakerId);
+          const audioBuffer = await this.voiceVoxService.synthesizeSpeech(task.text, task.speakerId, {
+            pitch: task.pitch,
+            speed: task.speed
+          });
           const resource = createAudioResource(Readable.from([audioBuffer]), {
             inputType: StreamType.Arbitrary
           });

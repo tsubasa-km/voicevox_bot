@@ -16,9 +16,16 @@ export async function runMigrations(): Promise<void> {
       guild_id TEXT NOT NULL,
       user_id TEXT NOT NULL,
       speaker_id INTEGER NOT NULL,
+      pitch DOUBLE PRECISION NOT NULL DEFAULT 0,
+      speed DOUBLE PRECISION NOT NULL DEFAULT 1,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       PRIMARY KEY (guild_id, user_id)
     );
+  `);
+  await pool.query(`
+    ALTER TABLE user_speakers
+      ADD COLUMN IF NOT EXISTS pitch DOUBLE PRECISION NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS speed DOUBLE PRECISION NOT NULL DEFAULT 1;
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS guild_settings (
