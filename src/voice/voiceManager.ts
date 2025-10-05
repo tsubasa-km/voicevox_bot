@@ -236,4 +236,9 @@ export class VoiceManager {
     const session = this.sessions.get(guildId);
     return session ? session.getVoiceChannelId() : null;
   }
+
+  getTextChannelId(guildId: string): string | null {
+    const session = this.sessions.get(guildId);
+    return session ? session.getTextChannelId() : null;
+  }
 }

@@ -21,5 +21,10 @@ export const config = {
   defaultSpeakerId: Number(process.env.DEFAULT_SPEAKER_ID ?? '1'),
   maxUtteranceLength: Number(process.env.MAX_UTTERANCE_LENGTH ?? '140'),
   logFilePath: process.env.LOG_FILE_PATH ?? 'logs/bot.log',
-  logLevel
+  logLevel,
+  api: {
+    key: requireEnv('API_KEY'),
+    port: Number(process.env.API_PORT ?? '3000'),
+    hostname: process.env.API_HOST ?? '0.0.0.0'
+  }
 };

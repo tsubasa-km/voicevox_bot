@@ -3,6 +3,7 @@ import { ChannelType, Client, Collection, Events, GatewayIntentBits } from 'disc
 import { config } from '@/config.js';
 import { VoiceVoxService } from '@/services/voicevox.js';
 import { VoiceManager } from '@/voice/voiceManager.js';
+import { startApiServer } from '@/api/server.js';
 import { buildCommands } from '@/commands/index.js';
 import type { Command } from '@/commands/types.js';
 import { getUserVoiceSettings, setUserSpeakerId, setUserPitch, setUserSpeed, defaultPitch, defaultSpeed } from '@/db/userSpeakers.js';
@@ -75,6 +76,23 @@ async function bootstrap(): Promise<void> {
 
   const voiceVoxService = new VoiceVoxService(config.voiceVoxApiUrl);
   const voiceManager = new VoiceManager(voiceVoxService);
+
+  const apiServer = startApiServer({
+    client,
+    voiceManager,
+    voiceVoxService,
+    getUserVoiceSettings,
+    setUserSpeakerId,
+    setUserPitch,
+    setUserSpeed,
+    defaultSpeakerId: config.defaultSpeakerId,
+    defaultPitch,
+    defaultSpeed,
+    maxUtteranceLength: config.maxUtteranceLength,
+    apiKey: config.api.key,
+    port: config.api.port,
+    hostname: config.api.hostname
+  });
 
   const commands = buildCommands({
     voiceManager,
@@ -215,6 +233,7 @@ async function bootstrap(): Promise<void> {
 
   const shutdown = async () => {
     logger.info('Shutting down...');
+    await apiServer.stop().catch((error) => logger.error('Failed to stop API server', error));
     voiceManager.destroyAll();
     await shutdownDb();
     client.destroy();
