@@ -1,3 +1,4 @@
+import path from 'node:path';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -17,7 +18,7 @@ const logLevel = allowedLogLevels.has(envLogLevel) ? (envLogLevel as 'error' | '
 export const config = {
   discordToken: requireEnv('DISCORD_BOT_TOKEN'),
   voiceVoxApiUrl: requireEnv('VOICEVOX_API_URL'),
-  databaseUrl: requireEnv('DATABASE_URL'),
+  databasePath: process.env.DATABASE_PATH ?? path.resolve(process.cwd(), 'db/voicevox.db'),
   defaultSpeakerId: Number(process.env.DEFAULT_SPEAKER_ID ?? '1'),
   maxUtteranceLength: Number(process.env.MAX_UTTERANCE_LENGTH ?? '140'),
   logFilePath: process.env.LOG_FILE_PATH ?? 'logs/bot.log',

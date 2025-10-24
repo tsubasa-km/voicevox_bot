@@ -9,12 +9,14 @@ export interface UserVoiceSettings {
 export const defaultPitch = 0;
 export const defaultSpeed = 1;
 
+type UserSpeakerRow = { speaker_id: number; pitch: number; speed: number };
+
 export async function getUserVoiceSettings(
   guildId: string,
   userId: string
 ): Promise<UserVoiceSettings | null> {
-  const result = await pool.query<{ speaker_id: number; pitch: number; speed: number }>(
-    'SELECT speaker_id, pitch, speed FROM user_speakers WHERE guild_id = $1 AND user_id = $2',
+  const result = await pool.query<UserSpeakerRow>(
+    'SELECT speaker_id, pitch, speed FROM user_speakers WHERE guild_id = ? AND user_id = ? LIMIT 1',
     [guildId, userId]
   );
 
@@ -36,10 +38,10 @@ export async function setUserSpeakerId(
   speakerId: number
 ): Promise<void> {
   await pool.query(
-    `INSERT INTO user_speakers (guild_id, user_id, speaker_id, pitch, speed, updated_at)
-     VALUES ($1, $2, $3, DEFAULT, DEFAULT, NOW())
+    `INSERT INTO user_speakers (guild_id, user_id, speaker_id)
+     VALUES (?, ?, ?)
      ON CONFLICT (guild_id, user_id)
-     DO UPDATE SET speaker_id = EXCLUDED.speaker_id, updated_at = NOW()`,
+     DO UPDATE SET speaker_id = excluded.speaker_id, updated_at = CURRENT_TIMESTAMP`,
     [guildId, userId, speakerId]
   );
 }
@@ -51,11 +53,11 @@ export async function setUserPitch(
   defaultSpeakerId: number
 ): Promise<void> {
   await pool.query(
-    `INSERT INTO user_speakers (guild_id, user_id, speaker_id, pitch, speed, updated_at)
-     VALUES ($1, $2, $4, $3, DEFAULT, NOW())
+    `INSERT INTO user_speakers (guild_id, user_id, speaker_id, pitch)
+     VALUES (?, ?, ?, ?)
      ON CONFLICT (guild_id, user_id)
-     DO UPDATE SET pitch = EXCLUDED.pitch, updated_at = NOW()`,
-    [guildId, userId, pitch, defaultSpeakerId]
+     DO UPDATE SET pitch = excluded.pitch, updated_at = CURRENT_TIMESTAMP`,
+    [guildId, userId, defaultSpeakerId, pitch]
   );
 }
 
@@ -66,10 +68,10 @@ export async function setUserSpeed(
   defaultSpeakerId: number
 ): Promise<void> {
   await pool.query(
-    `INSERT INTO user_speakers (guild_id, user_id, speaker_id, pitch, speed, updated_at)
-     VALUES ($1, $2, $4, DEFAULT, $3, NOW())
+    `INSERT INTO user_speakers (guild_id, user_id, speaker_id, speed)
+     VALUES (?, ?, ?, ?)
      ON CONFLICT (guild_id, user_id)
-     DO UPDATE SET speed = EXCLUDED.speed, updated_at = NOW()`,
-    [guildId, userId, speed, defaultSpeakerId]
+     DO UPDATE SET speed = excluded.speed, updated_at = CURRENT_TIMESTAMP`,
+    [guildId, userId, defaultSpeakerId, speed]
   );
 }

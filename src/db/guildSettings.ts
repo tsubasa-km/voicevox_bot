@@ -10,16 +10,18 @@ const defaultSettings: GuildSettings = {
   textChannelId: null
 };
 
-function mapRow(row: { auto_join: boolean; text_channel_id: string | null }): GuildSettings {
+type GuildSettingsRow = { auto_join: number; text_channel_id: string | null };
+
+function mapRow(row: GuildSettingsRow): GuildSettings {
   return {
-    autoJoin: row.auto_join,
+    autoJoin: Boolean(row.auto_join),
     textChannelId: row.text_channel_id
   };
 }
 
 export async function getGuildSettings(guildId: string): Promise<GuildSettings> {
-  const result = await pool.query<{ auto_join: boolean; text_channel_id: string | null }>(
-    'SELECT auto_join, text_channel_id FROM guild_settings WHERE guild_id = $1',
+  const result = await pool.query<GuildSettingsRow>(
+    'SELECT auto_join, text_channel_id FROM guild_settings WHERE guild_id = ? LIMIT 1',
     [guildId]
   );
 
@@ -32,20 +34,23 @@ export async function getGuildSettings(guildId: string): Promise<GuildSettings> 
 
 export async function setGuildAutoJoin(guildId: string, autoJoin: boolean): Promise<void> {
   await pool.query(
-    `INSERT INTO guild_settings (guild_id, auto_join, text_channel_id, updated_at)
-     VALUES ($1, $2, NULL, NOW())
+    `INSERT INTO guild_settings (guild_id, auto_join, text_channel_id)
+     VALUES (?, ?, NULL)
      ON CONFLICT (guild_id)
-     DO UPDATE SET auto_join = EXCLUDED.auto_join, updated_at = NOW()`,
-    [guildId, autoJoin]
+     DO UPDATE SET auto_join = excluded.auto_join, updated_at = CURRENT_TIMESTAMP`,
+    [guildId, autoJoin ? 1 : 0]
   );
 }
 
-export async function setGuildPreferredTextChannel(guildId: string, textChannelId: string): Promise<void> {
+export async function setGuildPreferredTextChannel(
+  guildId: string,
+  textChannelId: string
+): Promise<void> {
   await pool.query(
-    `INSERT INTO guild_settings (guild_id, auto_join, text_channel_id, updated_at)
-     VALUES ($1, TRUE, $2, NOW())
+    `INSERT INTO guild_settings (guild_id, auto_join, text_channel_id)
+     VALUES (?, 1, ?)
      ON CONFLICT (guild_id)
-     DO UPDATE SET text_channel_id = EXCLUDED.text_channel_id, updated_at = NOW()`,
+     DO UPDATE SET text_channel_id = excluded.text_channel_id, updated_at = CURRENT_TIMESTAMP`,
     [guildId, textChannelId]
   );
 }
