@@ -13,10 +13,10 @@ services:
       - LOG_FILE_PATH=${LOG_FILE_PATH}
       - LOG_LEVEL=${LOG_LEVEL}
       - API_KEY=${API_KEY}
-      - API_PORT=${API_PORT}
-      - API_HOST=${API_HOST}
+      - API_HOST=0.0.0.0q
+      - PORT=${PORT}
     ports:
-      - "${API_PORT:-3000}:${API_PORT:-3000}"
+      - "${PORT:-3000}:${PORT:-3000}"
     volumes:
       - ./:/app
     depends_on:
