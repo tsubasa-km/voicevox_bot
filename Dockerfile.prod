@@ -1,46 +1,33 @@
-FROM node:22-bullseye AS builder
-
+FROM node:22-bullseye AS deps
 WORKDIR /app
-
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends ffmpeg build-essential python3 ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
 RUN npm install -g npm@latest && npm ci
 
+FROM deps AS builder
+WORKDIR /app
 COPY . .
 RUN npm run build
 
+FROM node:22-bullseye AS production
+WORKDIR /app
 
-FROM voicevox/voicevox_engine:latest
-
-ENV APP_HOME=/app \
-    VOICEVOX_API_URL=http://127.0.0.1:50021
-
-WORKDIR ${APP_HOME}
+ENV NODE_ENV=production \
+    PORT=3000
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ffmpeg ca-certificates curl \
+  && apt-get install -y --no-install-recommends ffmpeg ca-certificates python3 \
   && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /usr/local/bin/node /usr/local/bin/node
-COPY --from=builder /usr/local/lib/node_modules /usr/local/lib/node_modules
-RUN ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
-  && ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
-
+COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
-COPY docker-entrypoint-prod.sh /usr/local/bin/run-voicevox-bot.sh
 
-RUN chmod +x /usr/local/bin/run-voicevox-bot.sh \
-  && mkdir -p /app/logs /app/db \
-  && chown -R user:user /app
+RUN mkdir -p /app/logs /app/db
 
-EXPOSE ${PORT} 50021
+EXPOSE ${PORT}
 
-CMD ["/usr/local/bin/run-voicevox-bot.sh"]
+CMD ["npm", "run", "start:deploy"]

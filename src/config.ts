@@ -25,7 +25,7 @@ export const config = {
   logLevel,
   api: {
     key: requireEnv('API_KEY'),
-    port: Number(process.env.PORT ?? '3000'),
+    port: Number(process.env.PORT),
     hostname: process.env.API_HOST ?? '0.0.0.0'
   }
 };
