@@ -1,13 +1,13 @@
 import {
   AudioPlayer,
   AudioPlayerStatus,
-  StreamType,
   VoiceConnection,
   VoiceConnectionStatus,
   createAudioPlayer,
   createAudioResource,
   entersState,
-  joinVoiceChannel
+  joinVoiceChannel,
+  demuxProbe
 } from '@discordjs/voice';
 import type { DiscordGatewayAdapterCreator } from '@discordjs/voice';
 import type { VoiceBasedChannel } from 'discord.js';
@@ -98,13 +98,22 @@ class VoiceSession {
             pitch: task.pitch,
             speed: task.speed
           });
-          const resource = createAudioResource(Readable.from([audioBuffer]), {
-            inputType: StreamType.Arbitrary
+
+          let probedStream;
+          try {
+            probedStream = await demuxProbe(Readable.from([audioBuffer]));
+          } catch (error) {
+            logger.error('Failed to decode synthesized audio stream', error);
+            continue;
+          }
+
+          const resource = createAudioResource(probedStream.stream, {
+            inputType: probedStream.type
           });
 
           this.player.play(resource);
           try {
-            await entersState(this.player, AudioPlayerStatus.Playing, 5_000);
+            await entersState(this.player, AudioPlayerStatus.Playing, 10_000);
           } catch (error) {
             logger.error('Failed to start playback', error);
             continue;
