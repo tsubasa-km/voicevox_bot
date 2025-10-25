@@ -41,6 +41,6 @@ RUN chmod +x /usr/local/bin/run-voicevox-bot.sh \
   && mkdir -p /app/logs /app/db \
   && chown -R user:user /app
 
-EXPOSE 3000 50021
+EXPOSE ${PORT} 50021
 
 CMD ["/usr/local/bin/run-voicevox-bot.sh"]
