@@ -1,25 +1,14 @@
 services:
   voicevox_bot:
-    build: .
+    image: dqxtsubasa/voicevox_bot:latest
     container_name: voicevox_bot
     restart: unless-stopped
-    environment:
-      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
-      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
-      - VOICEVOX_API_URL=${VOICEVOX_API_URL}
-      - DEFAULT_SPEAKER_ID=${DEFAULT_SPEAKER_ID}
-      - MAX_UTTERANCE_LENGTH=${MAX_UTTERANCE_LENGTH}
-      - LOG_FILE_PATH=${LOG_FILE_PATH}
-      - LOG_LEVEL=${LOG_LEVEL}
-      - API_KEY=${API_KEY}
-      - API_HOST=0.0.0.0
-      - PORT=${PORT}
+    env_file:
+      - .env
     ports:
-      - "${PORT:-3000}:${PORT:-3000}"
+      - "8080:8080"
     volumes:
-      - sqlite_data:/app/db
-    depends_on:
-      - voicevox_engine
+      - sqlite_data:/app/data
 
   voicevox_engine:
     image: voicevox/voicevox_engine:latest
