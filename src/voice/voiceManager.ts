@@ -101,7 +101,9 @@ class VoiceSession {
 
           let probedStream;
           try {
-            probedStream = await demuxProbe(Readable.from([audioBuffer]));
+            // demuxProbe は objectMode=false のストリームを要求する。Readable.from のデフォルトは objectMode=true なので明示しておく。
+            const audioStream = Readable.from(Buffer.from(audioBuffer), { objectMode: false });
+            probedStream = await demuxProbe(audioStream);
           } catch (error) {
             logger.error('Failed to decode synthesized audio stream', error);
             continue;
