@@ -152,6 +152,30 @@ async function bootstrap(): Promise<void> {
     }
 
     const guildId = message.guild.id;
+    const activeVoiceChannelId = voiceManager.getVoiceChannelId(guildId);
+    const sessionTextChannelId = voiceManager.getTextChannelId(guildId);
+
+    if (!activeVoiceChannelId || !sessionTextChannelId) {
+      logger.debug(
+        `Message in channel ${message.channelId} ignored; no active voice session (text=${sessionTextChannelId ?? 'none'}, voice=${activeVoiceChannelId ?? 'none'})`
+      );
+      return;
+    }
+
+    const memberVoiceChannelId = message.member?.voice.channelId;
+    const isSessionTextChannel = message.channelId === sessionTextChannelId;
+    const isAuthorInActiveVC = memberVoiceChannelId === activeVoiceChannelId;
+
+    // 読み上げ条件:
+    // 1) セッションのテキストチャンネルへの投稿は誰でも対象
+    // 2) それ以外のテキストチャンネルは、投稿者がアクティブVCにいる場合のみ対象
+    if (!isSessionTextChannel && !isAuthorInActiveVC) {
+      logger.debug(
+        `Message in channel ${message.channelId} ignored; not session text channel and author not in active VC (${activeVoiceChannelId})`
+      );
+      return;
+    }
+
     await setGuildPreferredTextChannel(guildId, message.channelId);
     const userSettings = await getUserVoiceSettings(guildId, message.author.id);
     const speakerId = userSettings?.speakerId ?? config.defaultSpeakerId;
@@ -217,17 +241,32 @@ async function bootstrap(): Promise<void> {
       return;
     }
 
-    if (joinedChannelId === activeVoiceChannelId || leftChannelId === activeVoiceChannelId) {
-      const channel = await fetchVoiceChannel(guild, activeVoiceChannelId);
-      if (!channel) {
+    const interactedWithActiveChannel = joinedChannelId === activeVoiceChannelId || leftChannelId === activeVoiceChannelId;
+    if (!interactedWithActiveChannel) {
+      return;
+    }
+
+    const channel = await fetchVoiceChannel(guild, activeVoiceChannelId);
+    if (!channel) {
+      return;
+    }
+
+    const nonBotMembers = channel.members.filter((guildMember) => !guildMember.user.bot);
+    const isLastNonBotLeaving = leftChannelId === activeVoiceChannelId && nonBotMembers.size === 0 && !isBot;
+
+    if (isLastNonBotLeaving && joinedChannelId && newState.channel) {
+      const moved = await voiceManager.move(guildId, newState.channel);
+      if (moved) {
+        logger.info(
+          `Followed the last participant from ${activeVoiceChannelId} to ${newState.channel.id} in guild ${guildId}`
+        );
         return;
       }
+    }
 
-      const nonBotMembers = channel.members.filter((guildMember) => !guildMember.user.bot);
-      if (nonBotMembers.size === 0) {
-        voiceManager.leave(guildId);
-        logger.info(`Left voice channel ${activeVoiceChannelId} in guild ${guildId} because only the bot remained`);
-      }
+    if (nonBotMembers.size === 0) {
+      voiceManager.leave(guildId);
+      logger.info(`Left voice channel ${activeVoiceChannelId} in guild ${guildId} because only the bot remained`);
     }
   });
 

@@ -11,7 +11,7 @@ import {
 } from '@discordjs/voice';
 import type { DiscordGatewayAdapterCreator } from '@discordjs/voice';
 import type { VoiceBasedChannel } from 'discord.js';
-import { Readable } from 'node:stream';
+import { PassThrough } from 'node:stream';
 import { VoiceVoxService } from '@/services/voicevox.js';
 import { logger } from '@/utils/logger.js';
 
@@ -28,7 +28,7 @@ class VoiceSession {
   private isProcessing = false;
   private destroyed = false;
   private textChannelId: string;
-  private readonly voiceChannelId: string;
+  private voiceChannelId: string;
 
   constructor(
     private readonly connection: VoiceConnection,
@@ -72,6 +72,32 @@ class VoiceSession {
     return this.voiceChannelId;
   }
 
+  async moveToChannel(voiceChannel: VoiceBasedChannel): Promise<void> {
+    if (this.destroyed) {
+      return;
+    }
+
+    if (voiceChannel.id === this.voiceChannelId) {
+      return;
+    }
+
+    this.connection.rejoin({
+      channelId: voiceChannel.id,
+      selfDeaf: false,
+      selfMute: false
+    });
+
+    try {
+      await entersState(this.connection, VoiceConnectionStatus.Ready, 10_000);
+      this.voiceChannelId = voiceChannel.id;
+      logger.info(`Moved voice session to channel ${voiceChannel.id} in guild ${voiceChannel.guild.id}`);
+    } catch (error) {
+      logger.error('Failed to move voice connection', error);
+      this.destroy();
+      throw error;
+    }
+  }
+
   enqueue(task: SpeechTask): void {
     if (this.destroyed) {
       return;
@@ -101,7 +127,9 @@ class VoiceSession {
 
           let probedStream;
           try {
-            probedStream = await demuxProbe(Readable.from([audioBuffer]));
+            const audioStream = new PassThrough();
+            audioStream.end(Buffer.from(audioBuffer));
+            probedStream = await demuxProbe(audioStream);
           } catch (error) {
             logger.error('Failed to decode synthesized audio stream', error);
             continue;
@@ -172,6 +200,7 @@ export class VoiceManager {
     const existing = this.sessions.get(voiceChannel.guild.id);
     if (existing) {
       existing.updateTextChannel(textChannelId);
+      // 既に接続済みの場合はテキストチャンネルのみ更新し、移動は move() で扱う。
       return;
     }
 
@@ -193,6 +222,22 @@ export class VoiceManager {
     );
     this.sessions.set(voiceChannel.guild.id, session);
     logger.info(`Joined voice channel ${voiceChannel.id} in guild ${voiceChannel.guild.id}`);
+  }
+
+  async move(guildId: string, voiceChannel: VoiceBasedChannel): Promise<boolean> {
+    const session = this.sessions.get(guildId);
+    if (!session) {
+      return false;
+    }
+
+    try {
+      await session.moveToChannel(voiceChannel);
+      return true;
+    } catch (error) {
+      logger.error('Failed to move voice session', error);
+      this.sessions.delete(guildId);
+      return false;
+    }
   }
 
   leave(guildId: string): void {
