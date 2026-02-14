@@ -17,6 +17,7 @@
 ### 2.2 メッセージ監視
 - BOT 以外のメッセージのみ処理。`formatMessageContent` で正規化し、アクティブな VoiceSession があれば読み上げる。
 - メッセージ送信チャンネルを `guild_settings.text_channel_id` に保存し、VoiceSession と同期する。
+- 画像添付（`image/*` または画像拡張子）のみの投稿は読み上げ対象外。本文がある場合は本文のみ読み上げる。
 
 ### 2.3 VoiceManager
 - ギルドごとに 1 セッション管理。ユーザーが離脱してボイスチャンネルに人間が 0 になったら BOT も退出。

@@ -1,8 +1,9 @@
-import type { Message } from 'discord.js';
+import type { Attachment, Message } from 'discord.js';
 import { config } from '@/config.js';
 
 const urlPattern = /https?:\/\/\S+/gi;
 const customEmojiPattern = /<a?:([\w]+):\d+>/gi;
+const imageExtensionPattern = /\.(apng|avif|bmp|gif|jpe?g|jfif|png|svg|webp|heic|heif)$/i;
 
 function replaceUserMentions(message: Message, input: string): string {
   let content = input;
@@ -37,8 +38,17 @@ function replaceChannelMentions(message: Message, input: string): string {
   return content;
 }
 
+function isImageAttachment(attachment: Attachment): boolean {
+  const contentType = attachment.contentType?.toLowerCase();
+  if (contentType?.startsWith('image/')) {
+    return true;
+  }
+  return imageExtensionPattern.test(attachment.name ?? '');
+}
+
 export function formatMessageContent(message: Message): string {
   let content = message.content ?? '';
+  const nonImageAttachments = message.attachments.filter((attachment) => !isImageAttachment(attachment));
 
   content = replaceUserMentions(message, content);
   content = replaceRoleMentions(message, content);
@@ -54,12 +64,12 @@ export function formatMessageContent(message: Message): string {
 
   content = content.trim();
 
-  if (!content && message.attachments.size > 0) {
+  if (!content && nonImageAttachments.size > 0) {
     content = '添付ファイル';
   }
 
-  if (message.attachments.size > 0) {
-    const attachmentSummary = message.attachments
+  if (nonImageAttachments.size > 0) {
+    const attachmentSummary = nonImageAttachments
       .map((attachment) => attachment.name ?? 'ファイル')
       .join('、');
     content = content ? `${content}、添付: ${attachmentSummary}` : `添付: ${attachmentSummary}`;
