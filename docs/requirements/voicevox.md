@@ -18,6 +18,7 @@
 - BOT 以外のメッセージのみ処理。`formatMessageContent` で正規化し、アクティブな VoiceSession があれば読み上げる。
 - メッセージ送信チャンネルを `guild_settings.text_channel_id` に保存し、VoiceSession と同期する。
 - 画像添付（`image/*` または画像拡張子）のみの投稿は読み上げ対象外。本文がある場合は本文のみ読み上げる。
+- `user_speakers.speaker_id` が未設定のユーザーは `guildId:userId` のハッシュで VOICEVOX style ID を決定し、DBへ新規保存しない。疑似ランダム選択の対象は `styleName` が `ノーマル`（または `normal`）の style のみに限定する。
 
 ### 2.3 VoiceManager
 - ギルドごとに 1 セッション管理。ユーザーが離脱してボイスチャンネルに人間が 0 になったら BOT も退出。
@@ -25,7 +26,7 @@
 
 ### 2.4 外部 API
 - `PATCH /settings/users/:guildId/:userId`: `speakerId` (整数), `pitch` (number), `speed` (number) を個別に更新可能。`speakerId` は VOICEVOX styles で検証。
-- `POST /speech`: `userId`, `text` は必須。ユーザーと BOT が同一 VC に居るか検証し、`VoiceManager.dispatchSpeech` に渡す。409/404 を使い分けて失敗理由を返す。
+- `POST /speech`: `userId`, `text` は必須。ユーザーと BOT が同一 VC に居るか検証し、`VoiceManager.dispatchSpeech` に渡す。話者が未指定/未設定のときはメッセージ監視と同じハッシュ規則で style ID を選ぶ。409/404 を使い分けて失敗理由を返す。
 
 ## 3. 非機能要件
 - Node.js 22 でコンテナ化。FFmpeg を含む。

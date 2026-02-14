@@ -6,6 +6,7 @@ import { logger } from '@/utils/logger.js';
 import type { VoiceManager } from '@/voice/voiceManager.js';
 import type { VoiceVoxService } from '@/services/voicevox.js';
 import type { UserVoiceSettings } from '@/db/userSpeakers.js';
+import { resolveSpeakerId } from '@/utils/speakerResolver.js';
 
 export interface ApiServerDependencies {
   client: Client;
@@ -125,14 +126,26 @@ export function startApiServer(deps: ApiServerDependencies): ApiServerHandle {
     }
 
     const updated = await deps.getUserVoiceSettings(guildId, userId);
+    const mergedSettings = updated ?? {
+      speakerId: null,
+      pitch: deps.defaultPitch,
+      speed: deps.defaultSpeed
+    };
+    const resolvedSpeakerId = await resolveSpeakerId({
+      guildId,
+      userId,
+      configuredSpeakerId: mergedSettings.speakerId,
+      defaultSpeakerId: deps.defaultSpeakerId,
+      voiceVoxService: deps.voiceVoxService
+    });
 
     return c.json({
       ok: true,
       updatedFields: payloadKeys,
-      settings: updated ?? {
-        speakerId: deps.defaultSpeakerId,
-        pitch: deps.defaultPitch,
-        speed: deps.defaultSpeed
+      settings: {
+        speakerId: resolvedSpeakerId,
+        pitch: mergedSettings.pitch,
+        speed: mergedSettings.speed
       }
     });
   });
@@ -250,7 +263,13 @@ export function startApiServer(deps: ApiServerDependencies): ApiServerHandle {
       return c.json({ error: 'speed must be a finite number' }, 400);
     }
 
-    const resolvedSpeakerId = speakerId ?? userSettings?.speakerId ?? deps.defaultSpeakerId;
+    const resolvedSpeakerId = await resolveSpeakerId({
+      guildId,
+      userId,
+      configuredSpeakerId: speakerId ?? userSettings?.speakerId,
+      defaultSpeakerId: deps.defaultSpeakerId,
+      voiceVoxService: deps.voiceVoxService
+    });
     const resolvedPitch = pitchOverride ?? userSettings?.pitch ?? deps.defaultPitch;
     const resolvedSpeed = speedOverride ?? userSettings?.speed ?? deps.defaultSpeed;
 

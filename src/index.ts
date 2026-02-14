@@ -8,6 +8,7 @@ import { buildCommands } from '@/commands/index.js';
 import type { Command } from '@/commands/types.js';
 import { getUserVoiceSettings, setUserSpeakerId, setUserPitch, setUserSpeed, defaultPitch, defaultSpeed } from '@/db/userSpeakers.js';
 import { formatMessageContent } from '@/utils/textFormatter.js';
+import { resolveSpeakerId } from '@/utils/speakerResolver.js';
 import { logger } from '@/utils/logger.js';
 import { runMigrations, shutdownDb } from '@/db/pool.js';
 import {
@@ -178,7 +179,13 @@ async function bootstrap(): Promise<void> {
 
     await setGuildPreferredTextChannel(guildId, message.channelId);
     const userSettings = await getUserVoiceSettings(guildId, message.author.id);
-    const speakerId = userSettings?.speakerId ?? config.defaultSpeakerId;
+    const speakerId = await resolveSpeakerId({
+      guildId,
+      userId: message.author.id,
+      configuredSpeakerId: userSettings?.speakerId,
+      defaultSpeakerId: config.defaultSpeakerId,
+      voiceVoxService
+    });
     const pitch = userSettings?.pitch ?? defaultPitch;
     const speed = userSettings?.speed ?? defaultSpeed;
     const accepted = voiceManager.dispatchSpeech(guildId, message.channelId, {

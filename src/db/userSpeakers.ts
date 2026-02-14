@@ -1,13 +1,14 @@
 import { pool } from '@/db/pool.js';
 
 export interface UserVoiceSettings {
-  speakerId: number;
+  speakerId: number | null;
   pitch: number;
   speed: number;
 }
 
 export const defaultPitch = 0;
 export const defaultSpeed = 1;
+export const unsetSpeakerId = -1;
 
 type UserSpeakerRow = { speaker_id: number; pitch: number; speed: number };
 
@@ -26,7 +27,7 @@ export async function getUserVoiceSettings(
 
   const row = result.rows[0];
   return {
-    speakerId: row.speaker_id,
+    speakerId: row.speaker_id === unsetSpeakerId ? null : row.speaker_id,
     pitch: row.pitch,
     speed: row.speed
   };
@@ -50,14 +51,14 @@ export async function setUserPitch(
   guildId: string,
   userId: string,
   pitch: number,
-  defaultSpeakerId: number
+  _defaultSpeakerId: number
 ): Promise<void> {
   await pool.query(
     `INSERT INTO user_speakers (guild_id, user_id, speaker_id, pitch)
      VALUES (?, ?, ?, ?)
      ON CONFLICT (guild_id, user_id)
      DO UPDATE SET pitch = excluded.pitch, updated_at = CURRENT_TIMESTAMP`,
-    [guildId, userId, defaultSpeakerId, pitch]
+    [guildId, userId, unsetSpeakerId, pitch]
   );
 }
 
@@ -65,13 +66,13 @@ export async function setUserSpeed(
   guildId: string,
   userId: string,
   speed: number,
-  defaultSpeakerId: number
+  _defaultSpeakerId: number
 ): Promise<void> {
   await pool.query(
     `INSERT INTO user_speakers (guild_id, user_id, speaker_id, speed)
      VALUES (?, ?, ?, ?)
      ON CONFLICT (guild_id, user_id)
      DO UPDATE SET speed = excluded.speed, updated_at = CURRENT_TIMESTAMP`,
-    [guildId, userId, defaultSpeakerId, speed]
+    [guildId, userId, unsetSpeakerId, speed]
   );
 }
