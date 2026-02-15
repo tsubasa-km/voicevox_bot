@@ -5,17 +5,31 @@ import { serve } from '@hono/node-server';
 import { logger } from '@/utils/logger.js';
 import type { VoiceManager } from '@/voice/voiceManager.js';
 import type { VoiceVoxService } from '@/services/voicevox.js';
+import type { LlmNormalizer } from '@/services/llmNormalizer.js';
 import type { UserVoiceSettings } from '@/db/userSpeakers.js';
+import type { UserLlmSettings } from '@/db/userLlmSettings.js';
+import { defaultUserLlmSettings } from '@/db/userLlmSettings.js';
 import { resolveSpeakerId } from '@/utils/speakerResolver.js';
+import { isLlmProvider } from '@/llm/types.js';
+import type { LlmProvider } from '@/llm/types.js';
 
 export interface ApiServerDependencies {
   client: Client;
   voiceManager: VoiceManager;
   voiceVoxService: VoiceVoxService;
+  llmNormalizer: LlmNormalizer;
   getUserVoiceSettings: (guildId: string, userId: string) => Promise<UserVoiceSettings | null>;
   setUserSpeakerId: (guildId: string, userId: string, speakerId: number) => Promise<void>;
   setUserPitch: (guildId: string, userId: string, pitch: number, defaultSpeakerId: number) => Promise<void>;
   setUserSpeed: (guildId: string, userId: string, speed: number, defaultSpeakerId: number) => Promise<void>;
+  getUserLlmSettings: (guildId: string, userId: string) => Promise<UserLlmSettings | null>;
+  setUserLlmSettings: (guildId: string, userId: string, settings: UserLlmSettings) => Promise<void>;
+  findAccessibleLlmApiKey: (
+    guildId: string,
+    userId: string,
+    provider: LlmProvider,
+    keyId: string
+  ) => Promise<unknown | null>;
   defaultSpeakerId: number;
   defaultPitch: number;
   defaultSpeed: number;
@@ -33,6 +47,10 @@ interface UpdateUserSettingsBody {
   speakerId?: unknown;
   pitch?: unknown;
   speed?: unknown;
+  llmEnabled?: unknown;
+  llmProvider?: unknown;
+  llmApiKeyId?: unknown;
+  llmModel?: unknown;
 }
 
 interface SpeechRequestBody {
@@ -48,6 +66,20 @@ interface SpeechRequestBody {
 type ClosableServer = {
   close: (callback: (error?: Error) => void) => void;
 };
+
+function parseOptionalNonEmptyString(value: unknown, fieldName: string): string | null {
+  if (value === null) {
+    return null;
+  }
+  if (typeof value !== 'string') {
+    throw new Error(`${fieldName} must be a string or null`);
+  }
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    throw new Error(`${fieldName} must not be empty`);
+  }
+  return trimmed;
+}
 
 export function startApiServer(deps: ApiServerDependencies): ApiServerHandle {
   const app = new Hono();
@@ -114,6 +146,72 @@ export function startApiServer(deps: ApiServerDependencies): ApiServerHandle {
       tasks.push(deps.setUserSpeed(guildId, userId, speed, deps.defaultSpeakerId));
     }
 
+    let llmSettingsToApply: UserLlmSettings | null = null;
+    const hasLlmField =
+      Object.prototype.hasOwnProperty.call(body, 'llmEnabled') ||
+      Object.prototype.hasOwnProperty.call(body, 'llmProvider') ||
+      Object.prototype.hasOwnProperty.call(body, 'llmApiKeyId') ||
+      Object.prototype.hasOwnProperty.call(body, 'llmModel');
+
+    if (hasLlmField) {
+      const currentLlm = (await deps.getUserLlmSettings(guildId, userId)) ?? defaultUserLlmSettings;
+      const nextLlm: UserLlmSettings = { ...currentLlm };
+
+      if (Object.prototype.hasOwnProperty.call(body, 'llmEnabled')) {
+        payloadKeys.push('llmEnabled');
+        if (body.llmEnabled === null) {
+          nextLlm.enabled = false;
+        } else if (typeof body.llmEnabled === 'boolean') {
+          nextLlm.enabled = body.llmEnabled;
+        } else {
+          return c.json({ error: 'llmEnabled must be boolean or null' }, 400);
+        }
+      }
+
+      if (Object.prototype.hasOwnProperty.call(body, 'llmProvider')) {
+        payloadKeys.push('llmProvider');
+        if (body.llmProvider === null) {
+          nextLlm.provider = null;
+        } else if (isLlmProvider(body.llmProvider)) {
+          nextLlm.provider = body.llmProvider;
+        } else {
+          return c.json({ error: 'llmProvider must be one of: gemini, openai, or null' }, 400);
+        }
+      }
+
+      if (Object.prototype.hasOwnProperty.call(body, 'llmApiKeyId')) {
+        payloadKeys.push('llmApiKeyId');
+        try {
+          nextLlm.apiKeyId = parseOptionalNonEmptyString(body.llmApiKeyId, 'llmApiKeyId');
+        } catch (error) {
+          return c.json({ error: (error as Error).message }, 400);
+        }
+      }
+
+      if (Object.prototype.hasOwnProperty.call(body, 'llmModel')) {
+        payloadKeys.push('llmModel');
+        try {
+          nextLlm.model = parseOptionalNonEmptyString(body.llmModel, 'llmModel');
+        } catch (error) {
+          return c.json({ error: (error as Error).message }, 400);
+        }
+      }
+
+      if (nextLlm.apiKeyId && !nextLlm.provider) {
+        return c.json({ error: 'llmApiKeyId requires llmProvider' }, 400);
+      }
+
+      if (nextLlm.provider && nextLlm.apiKeyId) {
+        const key = await deps.findAccessibleLlmApiKey(guildId, userId, nextLlm.provider, nextLlm.apiKeyId);
+        if (!key) {
+          return c.json({ error: `LLM API key ${nextLlm.provider}/${nextLlm.apiKeyId} is not accessible` }, 400);
+        }
+      }
+
+      llmSettingsToApply = nextLlm;
+      tasks.push(deps.setUserLlmSettings(guildId, userId, nextLlm));
+    }
+
     if (tasks.length === 0) {
       return c.json({ error: 'No supported fields were provided' }, 400);
     }
@@ -125,8 +223,8 @@ export function startApiServer(deps: ApiServerDependencies): ApiServerHandle {
       return c.json({ error: 'Failed to update settings' }, 500);
     }
 
-    const updated = await deps.getUserVoiceSettings(guildId, userId);
-    const mergedSettings = updated ?? {
+    const updatedVoice = await deps.getUserVoiceSettings(guildId, userId);
+    const mergedVoice = updatedVoice ?? {
       speakerId: null,
       pitch: deps.defaultPitch,
       speed: deps.defaultSpeed
@@ -134,18 +232,24 @@ export function startApiServer(deps: ApiServerDependencies): ApiServerHandle {
     const resolvedSpeakerId = await resolveSpeakerId({
       guildId,
       userId,
-      configuredSpeakerId: mergedSettings.speakerId,
+      configuredSpeakerId: mergedVoice.speakerId,
       defaultSpeakerId: deps.defaultSpeakerId,
       voiceVoxService: deps.voiceVoxService
     });
+
+    const updatedLlm = llmSettingsToApply ?? (await deps.getUserLlmSettings(guildId, userId)) ?? defaultUserLlmSettings;
 
     return c.json({
       ok: true,
       updatedFields: payloadKeys,
       settings: {
         speakerId: resolvedSpeakerId,
-        pitch: mergedSettings.pitch,
-        speed: mergedSettings.speed
+        pitch: mergedVoice.pitch,
+        speed: mergedVoice.speed,
+        llmEnabled: updatedLlm.enabled,
+        llmProvider: updatedLlm.provider,
+        llmApiKeyId: updatedLlm.apiKeyId,
+        llmModel: updatedLlm.model
       }
     });
   });
@@ -273,8 +377,14 @@ export function startApiServer(deps: ApiServerDependencies): ApiServerHandle {
     const resolvedPitch = pitchOverride ?? userSettings?.pitch ?? deps.defaultPitch;
     const resolvedSpeed = speedOverride ?? userSettings?.speed ?? deps.defaultSpeed;
 
+    const normalizedText = await deps.llmNormalizer.normalize({
+      guildId,
+      userId,
+      text: trimmedText
+    });
+
     const accepted = deps.voiceManager.dispatchSpeech(guildId, textChannelId, {
-      text: trimmedText,
+      text: normalizedText,
       speakerId: resolvedSpeakerId,
       pitch: resolvedPitch,
       speed: resolvedSpeed

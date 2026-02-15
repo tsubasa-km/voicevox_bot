@@ -7,10 +7,20 @@ import { startApiServer } from '@/api/server.js';
 import { buildCommands } from '@/commands/index.js';
 import type { Command } from '@/commands/types.js';
 import { getUserVoiceSettings, setUserSpeakerId, setUserPitch, setUserSpeed, defaultPitch, defaultSpeed } from '@/db/userSpeakers.js';
+import { getUserLlmSettings, setUserLlmSettings } from '@/db/userLlmSettings.js';
+import {
+  deleteApiKey,
+  findAccessibleApiKey,
+  findAccessibleApiKeysByProvider,
+  getLlmApiKey,
+  listAccessibleApiKeys,
+  upsertApiKey
+} from '@/db/llmApiKeys.js';
 import { formatMessageContent } from '@/utils/textFormatter.js';
 import { resolveSpeakerId } from '@/utils/speakerResolver.js';
 import { logger } from '@/utils/logger.js';
 import { runMigrations, shutdownDb } from '@/db/pool.js';
+import { LlmNormalizer } from '@/services/llmNormalizer.js';
 import {
   getGuildSettings,
   setGuildAutoJoin,
@@ -77,15 +87,26 @@ async function bootstrap(): Promise<void> {
 
   const voiceVoxService = new VoiceVoxService(config.voiceVoxApiUrl);
   const voiceManager = new VoiceManager(voiceVoxService);
+  const llmNormalizer = new LlmNormalizer({
+    getUserLlmSettings,
+    findAccessibleApiKey,
+    findAccessibleApiKeysByProvider,
+    masterKey: config.llm.masterKey,
+    maxUtteranceLength: config.maxUtteranceLength
+  });
 
   const apiServer = startApiServer({
     client,
     voiceManager,
     voiceVoxService,
+    llmNormalizer,
     getUserVoiceSettings,
     setUserSpeakerId,
     setUserPitch,
     setUserSpeed,
+    getUserLlmSettings,
+    setUserLlmSettings,
+    findAccessibleLlmApiKey: findAccessibleApiKey,
     defaultSpeakerId: config.defaultSpeakerId,
     defaultPitch,
     defaultSpeed,
@@ -105,7 +126,14 @@ async function bootstrap(): Promise<void> {
     defaultSpeakerId: config.defaultSpeakerId,
     getGuildSettings,
     setGuildAutoJoin,
-    setGuildPreferredTextChannel
+    setGuildPreferredTextChannel,
+    getUserLlmSettings,
+    setUserLlmSettings,
+    getLlmApiKey,
+    upsertLlmApiKey: (input) => upsertApiKey({ ...input, masterKey: config.llm.masterKey }),
+    deleteLlmApiKey: deleteApiKey,
+    listAccessibleLlmApiKeys: listAccessibleApiKeys,
+    findAccessibleLlmApiKey: findAccessibleApiKey
   });
 
   const commandMap = new Collection<string, Command>();
@@ -186,10 +214,15 @@ async function bootstrap(): Promise<void> {
       defaultSpeakerId: config.defaultSpeakerId,
       voiceVoxService
     });
+    const normalizedText = await llmNormalizer.normalize({
+      guildId,
+      userId: message.author.id,
+      text: formatted
+    });
     const pitch = userSettings?.pitch ?? defaultPitch;
     const speed = userSettings?.speed ?? defaultSpeed;
     const accepted = voiceManager.dispatchSpeech(guildId, message.channelId, {
-      text: formatted,
+      text: normalizedText,
       speakerId,
       pitch,
       speed

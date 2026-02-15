@@ -11,6 +11,15 @@ function requireEnv(name: string): string {
   return value;
 }
 
+function parseBase64MasterKey(name: string): Buffer {
+  const raw = requireEnv(name);
+  const decoded = Buffer.from(raw, 'base64');
+  if (decoded.length !== 32) {
+    throw new Error(`Environment variable ${name} must be base64-encoded 32-byte key`);
+  }
+  return decoded;
+}
+
 const allowedLogLevels = new Set(['error', 'warn', 'info', 'debug']);
 const envLogLevel = (process.env.LOG_LEVEL ?? 'info').toLowerCase();
 const logLevel = allowedLogLevels.has(envLogLevel) ? (envLogLevel as 'error' | 'warn' | 'info' | 'debug') : 'info';
@@ -27,5 +36,8 @@ export const config = {
     key: requireEnv('API_KEY'),
     port: Number(process.env.PORT),
     hostname: process.env.API_HOST ?? '0.0.0.0'
+  },
+  llm: {
+    masterKey: parseBase64MasterKey('LLM_MASTER_KEY')
   }
 };

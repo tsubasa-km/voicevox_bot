@@ -29,7 +29,7 @@
 - Node.js 22 ベース。ローカルは >=20 で `npm` v10 以上。
 - FFmpeg 必須（Dockerfile 参照）。
 - VOICEVOX エンジンを別プロセス/コンテナで起動し `VOICEVOX_API_URL` を指す。
-- `.env` で最低限 `DISCORD_BOT_TOKEN`, `VOICEVOX_API_URL`, `API_KEY`, `PORT`, `DISCORD_CLIENT_ID` を設定。詳細は `docs/requirements/voicevox.md#環境変数`。
+- `.env` で最低限 `DISCORD_BOT_TOKEN`, `VOICEVOX_API_URL`, `API_KEY`, `LLM_MASTER_KEY`, `PORT`, `DISCORD_CLIENT_ID` を設定。詳細は `docs/requirements/voicevox.md#環境変数`。
 - トークン/キーはログやリポジトリに残さない。共有時は 1Password など安全な手段を使用。
 
 ## 4. マストで実行するチェック
@@ -38,7 +38,7 @@
 | TypeScript の型保証 | `npm run build` （`tsc` + `tsc-alias`） |
 | Slash Command を変えた | 1) `.env` で `DISCORD_CLIENT_ID` を設定 2) `npm run deploy:commands -- --guild <テストギルドID>` で即時検証 |
 | 依存・Docker 変更 | `docker compose build voicevox_bot` で再ビルド、`docker compose up` で起動確認 |
-| DB スキーマ変更 | `npm run build` 後にローカルで `dist/index.js` を一度起動し、`db/voicevox.db` に期待カラムができることを確認 |
+| DB スキーマ変更 | `npm run build` 後にローカルで `dist/index.js` を一度起動し、`DATABASE_PATH` で指定した SQLite に期待カラムができることを確認 |
 
 CI が無いので、手元でこれらを必ず走らせて結果を共有する。
 
@@ -75,7 +75,7 @@ CI が無いので、手元でこれらを必ず走らせて結果を共有す�
 
 ## 7. データ / セキュリティガードレール
 - Discord Token や API Key をログや PR に載せない。`.env` の diff をコミットしない。
-- SQLite (`db/voicevox.db`) にはギルド ID・ユーザー ID・音声設定のみを保存。メッセージ本文は保存しない方針。
+- SQLite にはギルド ID・ユーザー ID・音声設定・LLM 設定・暗号化済み API キーのみを保存。メッセージ本文は保存しない方針。
 - ログ (`logs/bot.log`) は PII を含めない。必要ならユーザー ID をマスク。
 - `/speech` API は、ユーザーが BOT と同じ VC に居ない限り応答を拒否する仕様（変更しない）。
 
