@@ -3,3 +3,4 @@ dist/
 logs/
 .env
 npm-debug.log
+/.codex/config.toml

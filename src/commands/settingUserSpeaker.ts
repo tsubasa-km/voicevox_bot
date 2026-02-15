@@ -81,10 +81,10 @@ export const settingUserSpeakerCommandData = new SlashCommandBuilder()
       )
       .addSubcommand((sub) =>
         sub
-          .setName('llm')
-          .setDescription('読み上げ前のLLM自然化設定を更新します')
+          .setName('llm_assist')
+          .setDescription('読み上げ前のLLMアシスト設定を更新します')
           .addBooleanOption((option) =>
-            option.setName('enabled').setDescription('LLM自然化を使うかどうか').setRequired(true)
+            option.setName('enabled').setDescription('LLMアシストを使うかどうか').setRequired(true)
           )
           .addStringOption((option) =>
             option
@@ -93,10 +93,14 @@ export const settingUserSpeakerCommandData = new SlashCommandBuilder()
               .addChoices(...llmProviderChoices)
           )
           .addStringOption((option) =>
-            option.setName('key_id').setDescription('利用するAPIキーID (未指定でローテーション)')
+            option
+              .setName('key_id')
+              .setDescription('利用するAPIキーID (未指定でローテーション)')
           )
           .addStringOption((option) =>
-            option.setName('model').setDescription('モデルID (未指定でproviderの既定値)')
+            option
+              .setName('model')
+              .setDescription('モデルID (未指定でproviderの既定値)')
           )
           .addUserOption((option) =>
             option.setName('target').setDescription('設定を変更するユーザー')
@@ -238,7 +242,7 @@ export function buildSettingUserSpeakerCommand(deps: CommandDependencies): Comma
           return;
         }
 
-        if (subcommand === 'llm') {
+        if (subcommand === 'llm_assist') {
           const enabled = interaction.options.getBoolean('enabled', true);
           const providerRaw = interaction.options.getString('provider');
           const keyId = parseOptionalText(interaction.options.getString('key_id'));
@@ -279,7 +283,7 @@ export function buildSettingUserSpeakerCommand(deps: CommandDependencies): Comma
             }
           }
 
-          await deps.setUserLlmSettings(interaction.guild.id, targetUser.id, {
+          await deps.setUserLlmAssistSettings(interaction.guild.id, targetUser.id, {
             enabled,
             provider,
             apiKeyId: keyId,
@@ -292,7 +296,7 @@ export function buildSettingUserSpeakerCommand(deps: CommandDependencies): Comma
 
           await interaction.reply({
             content:
-              `${targetLabel} のLLM設定を更新しました。` +
+              `${targetLabel} のLLMアシスト設定を更新しました。` +
               `\n- enabled: ${enabled ? 'ON' : 'OFF'}` +
               `\n- provider: ${providerText}` +
               `\n- key_id: ${keyText}` +

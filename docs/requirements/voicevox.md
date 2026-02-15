@@ -6,17 +6,17 @@
 3. ギルド管理者が BOT の自動入室と優先テキストチャネルを設定する。
 4. 外部 Web クライアントが `/speech` を叩き、BOT と同じ VC に居るユーザーのテキストを指定して読み上げさせる。
 5. 外部管理ツールが `/settings/users/:guildId/:userId` でユーザー設定を同期する。
-6. 読み上げ前に LLM を使って「ひらがな化 + 句読点補正」を行い、自然な読み上げにする。
+6. 読み上げ前に LLMアシスト（2段階）を使って自然化とアクセント補正を行い、自然な読み上げにする。
 7. LLM API キーを Discord コマンドで管理し、利用可能ユーザーを制御する。
 
 ## 2. 機能要件
 ### 2.1 Slash Command
 - `/vc`: 実行ユーザーが所属する VC に BOT を参加/退出させる。参加できなければエラーメッセージを返す。
 - `/setting user speaker|pitch|speed`: 指定ユーザー (デフォルト: コマンド実行者) の設定を更新する。話者 ID は VOICEVOX style ID で存在チェックする。
-- `/setting user llm`: 指定ユーザー (デフォルト: コマンド実行者) の LLM 設定を更新する。
+- `/setting user llm_assist`: 指定ユーザー (デフォルト: コマンド実行者) の LLMアシスト設定を更新する。
   - `enabled` は必須。
-  - `provider`, `key_id`, `model` は任意。`key_id` を指定する場合は `provider` も必須。
-  - 未指定の `provider` / `key_id` / `model` は `NULL` を保存し、自動選択を有効化する。
+  - `provider`, `key_id`, `model` は任意。`key_id` 指定時は `provider` 必須。
+  - この設定は第1段階/第2段階で共通利用する。
 - `/setting server autojoin`: `ManageGuild` 権限者のみ。auto-join の ON/OFF を切り替え、実行チャンネルを優先テキストチャネルに保存する。
 - `/setting key add`: LLM API キーを追加/更新する。
   - 新規作成は誰でも可能。
@@ -32,10 +32,14 @@
 - メッセージ送信チャンネルを `guild_settings.text_channel_id` に保存し、VoiceSession と同期する。
 - 画像添付（`image/*` または画像拡張子）のみの投稿は読み上げ対象外。本文がある場合は本文のみ読み上げる。
 - `user_speakers.speaker_id` が未設定のユーザーは `guildId:userId` のハッシュで VOICEVOX style ID を決定し、DBへ新規保存しない。疑似ランダム選択の対象は `styleName` が `ノーマル`（または `normal`）の style のみに限定する。
-- `user_llm_settings.enabled = 1` の場合のみ LLM 正規化を適用する。
+- `user_llm_assist_settings.enabled = 1` の場合のみ LLMアシストを適用する。
+  - 第1段階: 読み上げ向け自然化（省略語展開・時刻正規化・誤字補正）。
+  - 第2段階: `audio_query.kana` のアクセント/区切り記号を最小変更で補正し、`accent_phrases?is_kana=true` で再解析。
   - provider 未指定時は固定優先順 `Gemini -> OpenAI`。
   - key_id 未指定時は provider 内で round-robin。
-  - provider 指定時に利用可能キーが無い場合は他 provider にフォールバックせず、元テキストで読み上げ継続する。
+  - フォールバック:
+    - 第1段階失敗時: 元テキストで継続。
+    - 第2段階失敗時: 第1段階の結果で継続。
 
 ### 2.3 VoiceManager
 - ギルドごとに 1 セッション管理。ユーザーが離脱してボイスチャンネルに人間が 0 になったら BOT も退出。
@@ -44,9 +48,11 @@
 ### 2.4 外部 API
 - `PATCH /settings/users/:guildId/:userId`
   - 既存: `speakerId` (整数), `pitch` (number), `speed` (number)
-  - 追加: `llmEnabled` (boolean|null), `llmProvider` (`gemini|openai|null`), `llmApiKeyId` (string|null), `llmModel` (string|null)
+  - 追加: `llmAssistEnabled` (boolean|null)
+  - 追加: `llmAssistProvider` (`gemini|openai|null`), `llmAssistApiKeyId` (string|null), `llmAssistModel` (string|null)
   - `speakerId` は VOICEVOX styles で検証。
-  - `llmApiKeyId` 指定時は `llmProvider` 必須。
+  - `llmAssistApiKeyId` 指定時は `llmAssistProvider` 必須。
+  - 旧 `llm*` フィールドは非対応（400）。
 - `POST /speech`
   - `userId`, `text` は必須。
   - ユーザーと BOT が同一 VC に居るか検証し、`VoiceManager.dispatchSpeech` に渡す。
@@ -96,15 +102,19 @@
 - 主キー: `(api_key_pk, allowed_user_id)`
 - 外部キー: `api_key_pk -> llm_api_keys.id` (`ON DELETE CASCADE`)
 
-### user_llm_settings
+### user_llm_assist_settings
 - 主キー: `(guild_id, user_id)`
-- カラム: `enabled INTEGER DEFAULT 0`, `provider TEXT NULL`, `api_key_id TEXT NULL`, `model TEXT NULL`, `updated_at TEXT DEFAULT CURRENT_TIMESTAMP`
+- カラム:
+  - `enabled INTEGER DEFAULT 0`
+  - `provider TEXT NULL`, `api_key_id TEXT NULL`, `model TEXT NULL`
+  - `updated_at TEXT DEFAULT CURRENT_TIMESTAMP`
 
 ## 6. 既知の制約
 - ギルドごとに 1 VoiceSession。複数 VC へ同時参加は非対応。
 - `/speech` API は BOT が接続中のギルドに限定。ギルド外のユーザーには応答できない。
 - VOICEVOX API のエラーはクライアントへ返さず、ログに記録してスキップする。
-- LLM API のエラー/タイムアウト時は元テキストで読み上げ継続する。
+- LLMアシスト第1段階のエラー/タイムアウト時は元テキストで読み上げ継続する。
+- LLMアシスト第2段階または kana 再解析のエラー時は第1段階結果で読み上げ継続する。
 
 ## 7. 今後の未解決事項
 - テスト自動化（現状 `npm run build` の型チェックのみ）。

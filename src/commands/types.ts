@@ -7,7 +7,7 @@ import type { VoiceManager } from '@/voice/voiceManager.js';
 import type { VoiceVoxService } from '@/services/voicevox.js';
 import type { GuildSettings } from '@/db/guildSettings.js';
 import type { UserVoiceSettings } from '@/db/userSpeakers.js';
-import type { UserLlmSettings } from '@/db/userLlmSettings.js';
+import type { UserLlmAssistSettings } from '@/db/userLlmAssistSettings.js';
 import type { LlmApiKeyRecord, UpsertApiKeyInput } from '@/db/llmApiKeys.js';
 import type { LlmApiKeyScope, LlmProvider } from '@/llm/types.js';
 
@@ -22,8 +22,8 @@ export interface CommandDependencies {
   getGuildSettings: (guildId: string) => Promise<GuildSettings>;
   setGuildAutoJoin: (guildId: string, enabled: boolean) => Promise<void>;
   setGuildPreferredTextChannel: (guildId: string, channelId: string) => Promise<void>;
-  getUserLlmSettings: (guildId: string, userId: string) => Promise<UserLlmSettings | null>;
-  setUserLlmSettings: (guildId: string, userId: string, settings: UserLlmSettings) => Promise<void>;
+  getUserLlmAssistSettings: (guildId: string, userId: string) => Promise<UserLlmAssistSettings | null>;
+  setUserLlmAssistSettings: (guildId: string, userId: string, settings: UserLlmAssistSettings) => Promise<void>;
   getLlmApiKey: (
     scope: LlmApiKeyScope,
     guildId: string,

@@ -13,10 +13,12 @@ import type { DiscordGatewayAdapterCreator } from '@discordjs/voice';
 import type { VoiceBasedChannel } from 'discord.js';
 import { PassThrough } from 'node:stream';
 import { VoiceVoxService } from '@/services/voicevox.js';
+import type { VoiceVoxAudioQuery } from '@/services/voicevox.js';
 import { logger } from '@/utils/logger.js';
 
 interface SpeechTask {
-  text: string;
+  text?: string;
+  audioQuery?: VoiceVoxAudioQuery;
   speakerId: number;
   pitch: number;
   speed: number;
@@ -120,10 +122,21 @@ class VoiceSession {
         }
 
         try {
-          const audioBuffer = await this.voiceVoxService.synthesizeSpeech(task.text, task.speakerId, {
-            pitch: task.pitch,
-            speed: task.speed
-          });
+          let audioBuffer: Buffer;
+          if (task.audioQuery) {
+            audioBuffer = await this.voiceVoxService.synthesizeFromAudioQuery(task.audioQuery, task.speakerId, {
+              pitch: task.pitch,
+              speed: task.speed
+            });
+          } else if (task.text) {
+            audioBuffer = await this.voiceVoxService.synthesizeSpeech(task.text, task.speakerId, {
+              pitch: task.pitch,
+              speed: task.speed
+            });
+          } else {
+            logger.warn('Speech task skipped because both text and audioQuery are empty');
+            continue;
+          }
 
           let probedStream;
           try {

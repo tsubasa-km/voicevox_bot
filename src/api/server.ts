@@ -5,10 +5,10 @@ import { serve } from '@hono/node-server';
 import { logger } from '@/utils/logger.js';
 import type { VoiceManager } from '@/voice/voiceManager.js';
 import type { VoiceVoxService } from '@/services/voicevox.js';
-import type { LlmNormalizer } from '@/services/llmNormalizer.js';
+import type { LlmAssist } from '@/services/llmAssist.js';
 import type { UserVoiceSettings } from '@/db/userSpeakers.js';
-import type { UserLlmSettings } from '@/db/userLlmSettings.js';
-import { defaultUserLlmSettings } from '@/db/userLlmSettings.js';
+import type { UserLlmAssistSettings } from '@/db/userLlmAssistSettings.js';
+import { defaultUserLlmAssistSettings } from '@/db/userLlmAssistSettings.js';
 import { resolveSpeakerId } from '@/utils/speakerResolver.js';
 import { isLlmProvider } from '@/llm/types.js';
 import type { LlmProvider } from '@/llm/types.js';
@@ -17,13 +17,13 @@ export interface ApiServerDependencies {
   client: Client;
   voiceManager: VoiceManager;
   voiceVoxService: VoiceVoxService;
-  llmNormalizer: LlmNormalizer;
+  llmAssist: LlmAssist;
   getUserVoiceSettings: (guildId: string, userId: string) => Promise<UserVoiceSettings | null>;
   setUserSpeakerId: (guildId: string, userId: string, speakerId: number) => Promise<void>;
   setUserPitch: (guildId: string, userId: string, pitch: number, defaultSpeakerId: number) => Promise<void>;
   setUserSpeed: (guildId: string, userId: string, speed: number, defaultSpeakerId: number) => Promise<void>;
-  getUserLlmSettings: (guildId: string, userId: string) => Promise<UserLlmSettings | null>;
-  setUserLlmSettings: (guildId: string, userId: string, settings: UserLlmSettings) => Promise<void>;
+  getUserLlmAssistSettings: (guildId: string, userId: string) => Promise<UserLlmAssistSettings | null>;
+  setUserLlmAssistSettings: (guildId: string, userId: string, settings: UserLlmAssistSettings) => Promise<void>;
   findAccessibleLlmApiKey: (
     guildId: string,
     userId: string,
@@ -47,6 +47,10 @@ interface UpdateUserSettingsBody {
   speakerId?: unknown;
   pitch?: unknown;
   speed?: unknown;
+  llmAssistEnabled?: unknown;
+  llmAssistProvider?: unknown;
+  llmAssistApiKeyId?: unknown;
+  llmAssistModel?: unknown;
   llmEnabled?: unknown;
   llmProvider?: unknown;
   llmApiKeyId?: unknown;
@@ -104,6 +108,15 @@ export function startApiServer(deps: ApiServerDependencies): ApiServerHandle {
       return c.json({ error: 'Invalid JSON body' }, 400);
     }
 
+    const hasLegacyLlmField =
+      Object.prototype.hasOwnProperty.call(body, 'llmEnabled') ||
+      Object.prototype.hasOwnProperty.call(body, 'llmProvider') ||
+      Object.prototype.hasOwnProperty.call(body, 'llmApiKeyId') ||
+      Object.prototype.hasOwnProperty.call(body, 'llmModel');
+    if (hasLegacyLlmField) {
+      return c.json({ error: 'Legacy llm* fields are no longer supported. Use llmAssist* fields.' }, 400);
+    }
+
     const tasks: Promise<void>[] = [];
     const payloadKeys: string[] = [];
 
@@ -146,70 +159,84 @@ export function startApiServer(deps: ApiServerDependencies): ApiServerHandle {
       tasks.push(deps.setUserSpeed(guildId, userId, speed, deps.defaultSpeakerId));
     }
 
-    let llmSettingsToApply: UserLlmSettings | null = null;
-    const hasLlmField =
-      Object.prototype.hasOwnProperty.call(body, 'llmEnabled') ||
-      Object.prototype.hasOwnProperty.call(body, 'llmProvider') ||
-      Object.prototype.hasOwnProperty.call(body, 'llmApiKeyId') ||
-      Object.prototype.hasOwnProperty.call(body, 'llmModel');
+    let llmAssistSettingsToApply: UserLlmAssistSettings | null = null;
+    const hasLlmAssistField =
+      Object.prototype.hasOwnProperty.call(body, 'llmAssistEnabled') ||
+      Object.prototype.hasOwnProperty.call(body, 'llmAssistProvider') ||
+      Object.prototype.hasOwnProperty.call(body, 'llmAssistApiKeyId') ||
+      Object.prototype.hasOwnProperty.call(body, 'llmAssistModel');
 
-    if (hasLlmField) {
-      const currentLlm = (await deps.getUserLlmSettings(guildId, userId)) ?? defaultUserLlmSettings;
-      const nextLlm: UserLlmSettings = { ...currentLlm };
+    if (hasLlmAssistField) {
+      const currentAssist =
+        (await deps.getUserLlmAssistSettings(guildId, userId)) ?? defaultUserLlmAssistSettings;
+      const nextAssist: UserLlmAssistSettings = { ...currentAssist };
 
-      if (Object.prototype.hasOwnProperty.call(body, 'llmEnabled')) {
-        payloadKeys.push('llmEnabled');
-        if (body.llmEnabled === null) {
-          nextLlm.enabled = false;
-        } else if (typeof body.llmEnabled === 'boolean') {
-          nextLlm.enabled = body.llmEnabled;
+      if (Object.prototype.hasOwnProperty.call(body, 'llmAssistEnabled')) {
+        payloadKeys.push('llmAssistEnabled');
+        if (body.llmAssistEnabled === null) {
+          nextAssist.enabled = false;
+        } else if (typeof body.llmAssistEnabled === 'boolean') {
+          nextAssist.enabled = body.llmAssistEnabled;
         } else {
-          return c.json({ error: 'llmEnabled must be boolean or null' }, 400);
+          return c.json({ error: 'llmAssistEnabled must be boolean or null' }, 400);
         }
       }
 
-      if (Object.prototype.hasOwnProperty.call(body, 'llmProvider')) {
-        payloadKeys.push('llmProvider');
-        if (body.llmProvider === null) {
-          nextLlm.provider = null;
-        } else if (isLlmProvider(body.llmProvider)) {
-          nextLlm.provider = body.llmProvider;
+      if (Object.prototype.hasOwnProperty.call(body, 'llmAssistProvider')) {
+        payloadKeys.push('llmAssistProvider');
+        if (body.llmAssistProvider === null) {
+          nextAssist.provider = null;
+        } else if (isLlmProvider(body.llmAssistProvider)) {
+          nextAssist.provider = body.llmAssistProvider;
         } else {
-          return c.json({ error: 'llmProvider must be one of: gemini, openai, or null' }, 400);
+          return c.json({ error: 'llmAssistProvider must be one of: gemini, openai, or null' }, 400);
         }
       }
 
-      if (Object.prototype.hasOwnProperty.call(body, 'llmApiKeyId')) {
-        payloadKeys.push('llmApiKeyId');
+      if (Object.prototype.hasOwnProperty.call(body, 'llmAssistApiKeyId')) {
+        payloadKeys.push('llmAssistApiKeyId');
         try {
-          nextLlm.apiKeyId = parseOptionalNonEmptyString(body.llmApiKeyId, 'llmApiKeyId');
+          nextAssist.apiKeyId = parseOptionalNonEmptyString(
+            body.llmAssistApiKeyId,
+            'llmAssistApiKeyId'
+          );
         } catch (error) {
           return c.json({ error: (error as Error).message }, 400);
         }
       }
 
-      if (Object.prototype.hasOwnProperty.call(body, 'llmModel')) {
-        payloadKeys.push('llmModel');
+      if (Object.prototype.hasOwnProperty.call(body, 'llmAssistModel')) {
+        payloadKeys.push('llmAssistModel');
         try {
-          nextLlm.model = parseOptionalNonEmptyString(body.llmModel, 'llmModel');
+          nextAssist.model = parseOptionalNonEmptyString(
+            body.llmAssistModel,
+            'llmAssistModel'
+          );
         } catch (error) {
           return c.json({ error: (error as Error).message }, 400);
         }
       }
 
-      if (nextLlm.apiKeyId && !nextLlm.provider) {
-        return c.json({ error: 'llmApiKeyId requires llmProvider' }, 400);
+      if (nextAssist.apiKeyId && !nextAssist.provider) {
+        return c.json({ error: 'llmAssistApiKeyId requires llmAssistProvider' }, 400);
       }
 
-      if (nextLlm.provider && nextLlm.apiKeyId) {
-        const key = await deps.findAccessibleLlmApiKey(guildId, userId, nextLlm.provider, nextLlm.apiKeyId);
+      if (nextAssist.provider && nextAssist.apiKeyId) {
+        const key = await deps.findAccessibleLlmApiKey(
+          guildId,
+          userId,
+          nextAssist.provider,
+          nextAssist.apiKeyId
+        );
         if (!key) {
-          return c.json({ error: `LLM API key ${nextLlm.provider}/${nextLlm.apiKeyId} is not accessible` }, 400);
+          return c.json({
+            error: `LLM assist API key ${nextAssist.provider}/${nextAssist.apiKeyId} is not accessible`
+          }, 400);
         }
       }
 
-      llmSettingsToApply = nextLlm;
-      tasks.push(deps.setUserLlmSettings(guildId, userId, nextLlm));
+      llmAssistSettingsToApply = nextAssist;
+      tasks.push(deps.setUserLlmAssistSettings(guildId, userId, nextAssist));
     }
 
     if (tasks.length === 0) {
@@ -237,7 +264,10 @@ export function startApiServer(deps: ApiServerDependencies): ApiServerHandle {
       voiceVoxService: deps.voiceVoxService
     });
 
-    const updatedLlm = llmSettingsToApply ?? (await deps.getUserLlmSettings(guildId, userId)) ?? defaultUserLlmSettings;
+    const updatedLlmAssist =
+      llmAssistSettingsToApply ??
+      (await deps.getUserLlmAssistSettings(guildId, userId)) ??
+      defaultUserLlmAssistSettings;
 
     return c.json({
       ok: true,
@@ -246,10 +276,10 @@ export function startApiServer(deps: ApiServerDependencies): ApiServerHandle {
         speakerId: resolvedSpeakerId,
         pitch: mergedVoice.pitch,
         speed: mergedVoice.speed,
-        llmEnabled: updatedLlm.enabled,
-        llmProvider: updatedLlm.provider,
-        llmApiKeyId: updatedLlm.apiKeyId,
-        llmModel: updatedLlm.model
+        llmAssistEnabled: updatedLlmAssist.enabled,
+        llmAssistProvider: updatedLlmAssist.provider,
+        llmAssistApiKeyId: updatedLlmAssist.apiKeyId,
+        llmAssistModel: updatedLlmAssist.model
       }
     });
   });
@@ -377,14 +407,16 @@ export function startApiServer(deps: ApiServerDependencies): ApiServerHandle {
     const resolvedPitch = pitchOverride ?? userSettings?.pitch ?? deps.defaultPitch;
     const resolvedSpeed = speedOverride ?? userSettings?.speed ?? deps.defaultSpeed;
 
-    const normalizedText = await deps.llmNormalizer.normalize({
+    const assisted = await deps.llmAssist.assist({
       guildId,
       userId,
-      text: trimmedText
+      text: trimmedText,
+      speakerId: resolvedSpeakerId
     });
 
     const accepted = deps.voiceManager.dispatchSpeech(guildId, textChannelId, {
-      text: normalizedText,
+      text: assisted.text,
+      audioQuery: assisted.audioQuery,
       speakerId: resolvedSpeakerId,
       pitch: resolvedPitch,
       speed: resolvedSpeed

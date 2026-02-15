@@ -119,8 +119,20 @@ export async function runMigrations(): Promise<void> {
     'CREATE INDEX IF NOT EXISTS idx_llm_api_key_access_allowed_user ON llm_api_key_access(allowed_user_id)'
   );
 
+  // Breaking change: old LLM settings are removed and replaced by stage-based LLM assist settings.
+  await pool.query('DROP TABLE IF EXISTS user_llm_settings');
+
+  // Breaking change: simplify LLM assist settings to a single shared configuration for both stages.
+  // Recreate only when legacy stage-based columns are present.
+  const hasLegacyAssistColumns =
+    columnExists('user_llm_assist_settings', 'stage1_provider') ||
+    columnExists('user_llm_assist_settings', 'stage2_provider');
+  if (hasLegacyAssistColumns) {
+    await pool.query('DROP TABLE IF EXISTS user_llm_assist_settings');
+  }
+
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS user_llm_settings (
+    CREATE TABLE IF NOT EXISTS user_llm_assist_settings (
       guild_id TEXT NOT NULL,
       user_id TEXT NOT NULL,
       enabled INTEGER NOT NULL DEFAULT 0,
@@ -132,9 +144,9 @@ export async function runMigrations(): Promise<void> {
     )
   `);
 
-  if (!columnExists('user_llm_settings', 'updated_at')) {
+  if (!columnExists('user_llm_assist_settings', 'updated_at')) {
     await pool.query(
-      'ALTER TABLE user_llm_settings ADD COLUMN updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP'
+      'ALTER TABLE user_llm_assist_settings ADD COLUMN updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP'
     );
   }
 

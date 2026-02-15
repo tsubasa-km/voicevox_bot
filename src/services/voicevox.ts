@@ -20,6 +20,14 @@ export interface VoiceSynthesisOptions {
   speed?: number;
 }
 
+export interface VoiceVoxAudioQuery {
+  accent_phrases?: unknown;
+  kana?: string;
+  speedScale?: number;
+  pitchScale?: number;
+  [key: string]: unknown;
+}
+
 export class VoiceVoxService {
   private speakersCache: VoiceVoxSpeaker[] | null = null;
 
@@ -52,11 +60,7 @@ export class VoiceVoxService {
     );
   }
 
-  async synthesizeSpeech(
-    text: string,
-    speakerId: number,
-    options?: VoiceSynthesisOptions
-  ): Promise<Buffer> {
+  async buildAudioQuery(text: string, speakerId: number): Promise<VoiceVoxAudioQuery> {
     const audioQueryUrl = new URL('/audio_query', this.baseUrl);
     audioQueryUrl.searchParams.set('speaker', speakerId.toString());
     audioQueryUrl.searchParams.set('text', text);
@@ -66,13 +70,47 @@ export class VoiceVoxService {
       throw new Error(`VoiceVox audio_query failed: ${audioQueryResponse.status} ${audioQueryResponse.statusText}`);
     }
 
-    const audioQuery = await audioQueryResponse.json();
+    const audioQuery = (await audioQueryResponse.json()) as VoiceVoxAudioQuery;
+    if (!audioQuery || typeof audioQuery !== 'object') {
+      throw new Error('VoiceVox audio_query returned invalid JSON');
+    }
+
+    return audioQuery;
+  }
+
+  async buildAccentPhrasesFromKana(kana: string, speakerId: number): Promise<unknown[]> {
+    const accentPhrasesUrl = new URL('/accent_phrases', this.baseUrl);
+    accentPhrasesUrl.searchParams.set('speaker', speakerId.toString());
+    accentPhrasesUrl.searchParams.set('is_kana', 'true');
+    accentPhrasesUrl.searchParams.set('text', kana);
+
+    const response = await fetch(accentPhrasesUrl, { method: 'POST' });
+    if (!response.ok) {
+      throw new Error(`VoiceVox accent_phrases failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data = (await response.json()) as unknown;
+    if (!Array.isArray(data)) {
+      throw new Error('VoiceVox accent_phrases returned invalid JSON');
+    }
+
+    return data;
+  }
+
+  async synthesizeFromAudioQuery(
+    audioQuery: VoiceVoxAudioQuery,
+    speakerId: number,
+    options?: VoiceSynthesisOptions
+  ): Promise<Buffer> {
+    const synthesisBody: VoiceVoxAudioQuery = {
+      ...audioQuery
+    };
 
     if (Number.isFinite(options?.speed)) {
-      audioQuery.speedScale = options?.speed;
+      synthesisBody.speedScale = options?.speed;
     }
     if (Number.isFinite(options?.pitch)) {
-      audioQuery.pitchScale = options?.pitch;
+      synthesisBody.pitchScale = options?.pitch;
     }
 
     const synthesisUrl = new URL('/synthesis', this.baseUrl);
@@ -83,7 +121,7 @@ export class VoiceVoxService {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(audioQuery)
+      body: JSON.stringify(synthesisBody)
     });
 
     if (!synthesisResponse.ok) {
@@ -92,5 +130,14 @@ export class VoiceVoxService {
 
     const arrayBuffer = await synthesisResponse.arrayBuffer();
     return Buffer.from(arrayBuffer);
+  }
+
+  async synthesizeSpeech(
+    text: string,
+    speakerId: number,
+    options?: VoiceSynthesisOptions
+  ): Promise<Buffer> {
+    const audioQuery = await this.buildAudioQuery(text, speakerId);
+    return this.synthesizeFromAudioQuery(audioQuery, speakerId, options);
   }
 }
