@@ -1,0 +1,4 @@
+interface:
+  display_name: "Notion Patchnote Updater"
+  short_description: "Update Notion patch notes from recent repo changes"
+  default_prompt: "Use $notion-patchnote-updater to update this project Notion patch notes with user-facing Japanese bullets inside the date toggle list."
