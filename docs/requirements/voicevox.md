@@ -79,7 +79,7 @@
 | API_HOST | 任意 | `0.0.0.0` | API バインドアドレス。 |
 | DEFAULT_SPEAKER_ID | 任意 | `1` | ユーザー設定が無いときの VOICEVOX style ID。 |
 | MAX_UTTERANCE_LENGTH | 任意 | `140` | フォーマッタと API の入力制限。 |
-| DATABASE_PATH | 任意 | `<repo>/db/voicevox.db` | SQLite ファイルパス。本番は `/app/data/voicevox.db` を推奨。 |
+| DATABASE_PATH | 任意 | `<repo>/data/voicevox.db` | SQLite ファイルパス。開発・本番ともに `data/voicevox.db` を推奨。 |
 | LOG_FILE_PATH | 任意 | `logs/bot.log` | ログ出力先。 |
 | LOG_LEVEL | 任意 | `info` | `error/warn/info/debug` を指定。 |
 
